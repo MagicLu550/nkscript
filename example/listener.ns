@@ -1,0 +1,7 @@
+import cn.nukkit.event.EventHandler
+import cn.nukkit.event.player.PlayerJoinEvent
+
+@EventHandler
+public void onPlayerJoin(PlayerJoinEvent e){
+
+}
