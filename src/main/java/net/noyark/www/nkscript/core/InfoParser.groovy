@@ -14,6 +14,7 @@ class InfoParser extends DSLParser {
 
     @Override
     void byProperty(String name, Object args, String stack) {
+
     }
 
     @DSLMethod

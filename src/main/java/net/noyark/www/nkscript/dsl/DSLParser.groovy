@@ -12,7 +12,7 @@ abstract class DSLParser {
 
     Map<String, Method> methodMap = [:]
 
-    Map<String,Object> entry = [:]
+    Map<String,Object[]> entry = [:]
 
 
     DSLParser(File file,String charSet){
@@ -48,7 +48,10 @@ abstract class DSLParser {
         this.fileClass.getMethod("run").invoke(fileClass.newInstance())
     }
 
-    Object getValue(String key){ entry[key] }
+    Object[] getValue(String key,Object defaultValue){
+        def t = entry[key]
+        t==null?[defaultValue]:t
+    }
 
     Map getChilds(String prefix){
         Map map = [:]

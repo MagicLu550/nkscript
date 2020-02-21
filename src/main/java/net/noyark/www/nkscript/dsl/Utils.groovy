@@ -53,9 +53,10 @@ class Utils {
         while (entries.hasMoreElements()){
             JarEntry entry = entries.nextElement()
             if(entry.name.endsWith("plugin.yml")){
-                Config config = new Config(byInputStream(jar.getInputStream(entry),System.getProperty("file.coding")),Config.YAML)
+                Config config = new Config(byInputStream(jar.getInputStream(entry),System.getProperty("file.encoding")),Config.YAML)
                 return config.getString("name")
             }
         }
     }
+
 }

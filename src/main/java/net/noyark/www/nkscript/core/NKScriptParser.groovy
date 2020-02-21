@@ -1,5 +1,6 @@
 package net.noyark.www.nkscript.core
 
+import cn.nukkit.command.PluginCommand
 import cn.nukkit.event.Listener
 import cn.nukkit.plugin.Plugin
 import cn.nukkit.plugin.PluginBase
@@ -8,6 +9,8 @@ import cn.nukkit.plugin.PluginManager
 import cn.nukkit.utils.PluginException
 import net.noyark.www.nkscript.dsl.Utils
 import net.noyark.www.nkscript.nkstarter.NKScript
+
+import java.lang.reflect.Method
 
 // NkScript插件结构
 // - 根文件夹
@@ -18,32 +21,26 @@ import net.noyark.www.nkscript.nkstarter.NKScript
 // -   others
 // info.ns
 //info{
-//      name "hello"
-//      listeners ["listener.ns"]
-//      commands ["commands.ns"]
-//      version "1.0.0"
-//      author "MagicLu"
-//      id "net.noyark.www"
-//      description ""
-//      permissions [
-//           FirstPlugin.fp : [
-//                  description : ""
-//                  default : "op"
-//           ]
-//      ]
-//      commands [
-//          fp : [
-//              usage : "/fp help"
-//              description : "指令介绍"
-//              permission : "FirstPlugin.fp"
-//          ]
-//      ]
-//}
-//depends{
-//      depend [
-//          "MobPlugin",
-//          ""
-//      ]
+//    name "hello"
+//    listeners ["listener.ns"]
+//    commands ["commands.ns"]
+//    version "1.0.0"
+//    author "MagicLu"
+//    id "net.noyark.www"
+//    description ""
+//    permissions ([
+//            FirstPlugin.fp : [
+//                    description : "",
+//                    default : "op"
+//            ]
+//    ])
+//    commands ([
+//            fp : [
+//                    "usage" : "/fp help",
+//                    "description" : "指令介绍",
+//                    "permission" : "FirstPlugin.fp"
+//            ]
+//    ])
 //}
 // main.ns
 // import xxx
@@ -63,12 +60,14 @@ class NKScriptParser {
 
     static final String IMPLEMENTS = "implements"
 
+    static final String PARSE_YAML_CMD = "parseYamlCommands"
+
     private Map<String, PluginBase> scripts = new HashMap<>()
 
     private GroovyClassLoader loader
 
     NKScriptParser(){
-        this.loader = new GroovyClassLoader()
+        this.loader = new GroovyClassLoader(this.class.classLoader)
     }
 
     List<NKScriptPluginBase> loadScripts(File dir,NKScript script){
@@ -87,13 +86,13 @@ class NKScriptParser {
     }
 
     NKScriptPluginBase prepareScript(File file,NKScript starter){
-        def infoFile = file + "/" + INFO_FILE
+        def infoFile = "${file.toString()}/" + INFO_FILE
         if(new File(infoFile).exists()){
             ScriptInfo scriptInfo = loadScriptInfo(new File(infoFile))
             //编译过程
-            def main = file + "/" + MAIN_FILE
+            def main = "${file.toString()}/" + MAIN_FILE
             if(new File(main).exists()){
-                def code = Utils.byInputStream(new FileInputStream(main),System.getProperty("file.coding"))
+                def code = Utils.byInputStream(new FileInputStream(new File(main)),System.getProperty("file.encoding"))
                 def mainClass = loader.parseClass(compileMain(code,scriptInfo.name,scriptInfo.id),scriptInfo.name)
                 // 形成PluginDescription
                 // permissions
@@ -109,13 +108,15 @@ class NKScriptParser {
                         api : starter.getDescription().getCompatibleAPIs(),
                         version : scriptInfo.version,
                         main : mainClass.name
-
                 ])
-                starter.server.getLogger().info(starter.server.getLanguage().translateString("nukkit.plugin.load", description.getFullName()));
 
+
+                starter.server.getLogger().info(starter.server.getLanguage().translateString("nukkit.plugin.load", description.getFullName()));
                 //插件加载
                 NKScriptPluginBase pluginBase = (NKScriptPluginBase)mainClass.newInstance()
                 pluginBase.scriptFile = file
+                pluginBase.info = scriptInfo
+                pluginBase.init(starter.pluginLoader,starter.server,description,starter.dataFolder,pluginBase.scriptFile)
                 return pluginBase
 
             }else{
@@ -128,10 +129,14 @@ class NKScriptParser {
 
 
     void loadScriptFile(NKScriptPluginBase pluginBase,NKScript starter){
-        starter.server.pluginManager.plugins.put(pluginBase.info.name,pluginBase)
+        PluginManager manager = starter.server.pluginManager
+        manager.plugins.put(pluginBase.info.name,pluginBase)
         this.plugins.put(pluginBase.info.name,pluginBase)
-        pluginBase.init(starter.pluginLoader,starter.server,starter.description,starter.dataFolder,pluginBase.scriptFile)
 
+        Method method = manager.class.getDeclaredMethod(PARSE_YAML_CMD,Plugin.class)
+        method.accessible = true
+        List<PluginCommand> li = (List)method.invoke(manager,pluginBase)
+        starter.server.commandMap.registerAll(pluginBase.getDescription().getName(), li)
         pluginBase.onLoad()
         
         //...
@@ -142,7 +147,7 @@ class NKScriptParser {
         List depends = pluginBase.info.depends
         List loadBefore = pluginBase.info.loadBefore
         List softDepend = pluginBase.info.softDepend
-        PluginManager manager = starter.server.pluginManager
+
         Map<String,Plugin> loadedPlugins = manager.plugins //已经加载的插件
         Map plugins = getPluginFileByName(starter)
 
@@ -153,13 +158,13 @@ class NKScriptParser {
         
         List listeners = pluginBase.info.listeners
         for(String listener in listeners){
-            def fileName = pluginBase.scriptFile.name+"/"+listener
+            def fileName = "${pluginBase.scriptFile.name}/"+listener
             Listener list = (Listener)(loader.parseClass(compileListener(Utils.byInputStream(new FileInputStream(fileName),System.getProperty("file.coding")),listener.split("\\.")[0],pluginBase.info.id)).newInstance())
             starter.server.pluginManager.registerEvents(list,pluginBase)
         }
         def commands = pluginBase.info.commands
         for(String command : commands){
-            def fileName = pluginBase.scriptFile.name+"/"+command
+            def fileName = "${pluginBase.scriptFile.name}/"+command
             Object obj = loader.parseClass(compileListener(Utils.byInputStream(new FileInputStream(fileName),System.getProperty("file.coding")),command.split("\\.")[0],pluginBase.info.id)).newInstance()
             starter.server.commandMap.registerSimpleCommands(obj)
         }
@@ -241,16 +246,15 @@ class NKScriptParser {
 
     private static String compileCode(String name,String code,String parent,String pack,String method){
         Map map = splitCode(code)
-        StringBuilder result = new StringBuilder()
         String realImport = map.imports
         String realCode = map.codes
-        result.append("package ${pack}\n")
-        result.append(realImport).append("\n")
-        result.append("class ${name} ${method} ${parent}{\n")
-        result.append(realCode).append("\n")
-        result.append("}\n")
-        result
-
+        return """
+package ${pack}
+${realImport}
+class ${name} ${method} ${parent} {
+    ${realCode}
+}
+        """
     }
     private static Map splitCode(String code){
         StringBuilder importsBuilder = new StringBuilder()
@@ -258,9 +262,9 @@ class NKScriptParser {
         List<String> codes = Utils.splitGroovyCode(code,"\n")
         for(String c in codes){
             if(c.startsWith("import")){
-                importsBuilder.append(c)
+                importsBuilder.append(c).append("\n")
             }else{
-                realCode.append(c)
+                realCode.append(c).append("\n")
             }
         }
         importsBuilder.append("import ${NKScriptPluginBase.name}")
@@ -269,18 +273,18 @@ class NKScriptParser {
 
     private static ScriptInfo loadScriptInfo(File infoFile){
         InfoParser parser = new InfoParser(infoFile)
-        String name = parser.getValue("info.name")
-        List listeners = (List)parser.getValue("info.listeners")
-        List commands = (List)parser.getValue("info.commands")
-        String version = parser.getValue("info.version")
-        String author = parser.getValue("info.author")
-        String id = parser.getValue("info.id")
-        String description = parser.getValue("info.description")
-        List depends = (List)parser.getValue("depends.depend")
-        List softDepend = (List)parser.getValue("depends.softDepend")
-        List loadBefore = (List)parser.getValue("depends.loadBefore")
-        Map permissions = (Map)parser.getValue("info.permissions")
-        Map commandsMap = (Map)parser.getValue("info.commands")
+        String name = parser.getValue("info.name","")[0]
+        List listeners = (List)parser.getValue("info.listeners",[])[0]
+        List commands = (List)parser.getValue("info.commandsMap",[])[0]
+        String version = parser.getValue("info.version","1.0.0")[0]
+        String author = parser.getValue("info.author","")[0]
+        String id = parser.getValue("info.id","")[0]
+        String description = parser.getValue("info.description","")[0]
+        List depends = (List)parser.getValue("depends.depend",[])[0]
+        List softDepend = (List)parser.getValue("depends.softDepend",[])[0]
+        List loadBefore = (List)parser.getValue("depends.loadBefore",[])[0]
+        Map permissions = (Map)parser.getValue("info.permissions",[:])[0]
+        Map commandsMap = (Map)parser.getValue("info.commands",[:])[0]
         ScriptInfo info = new ScriptInfo()
         info.name = name
         info.commands = commands
