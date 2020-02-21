@@ -1,0 +1,13 @@
+name: nkscript
+main: net.noyark.www.nkscript.nkstarter.NKScript
+version: 1.0.0
+api: ["1.0.9"]
+author: MagicLu550
+commands:
+  script:
+    usage: "/script help"
+    description: "NKScript指令"
+permissions:
+  nkscript.script:
+    description: "script指令"
+    default: op
