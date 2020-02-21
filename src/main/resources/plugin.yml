@@ -1,5 +1,5 @@
 name: nkscript
-main: net.noyark.www.nkscript.nkstarter.NKScript
+main: net.noyark.www.nkscript.nkstarter.ScriptMain
 version: 1.0.0
 api: ["1.0.9"]
 author: MagicLu550

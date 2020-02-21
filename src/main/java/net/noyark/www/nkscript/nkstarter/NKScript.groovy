@@ -9,7 +9,7 @@ import net.noyark.www.nkscript.core.NKScriptPluginBase
 
 class NKScript extends PluginBase {
 
-    private NKScriptParser parser;
+    private NKScriptParser parser
 
     @Override
     void onLoad() {
@@ -18,6 +18,7 @@ class NKScript extends PluginBase {
 
     @Override
     void onEnable() {
+        if(!this.dataFolder.exists()) this.dataFolder.mkdir()
         this.parser = new NKScriptParser()
         this.parser.loadScripts(this.dataFolder,this)
     }
