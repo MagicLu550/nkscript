@@ -1,8 +1,9 @@
+import cn.nukkit.command.CommandSender
 import cn.nukkit.command.simple.Command
 import cn.nukkit.command.simple.Arguments
 
 @Command(name = "hello",description = "233",usageMessage = "/hello")
 @Arguments(max = 10,min = 0)
-public void onHelloCommand(Object object, CommandSender sender, String label, String[] args){
+void onHelloCommand(Object object, CommandSender sender, String label, String[] args){
     //这里写指令处理代码
 }
