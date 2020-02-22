@@ -1,4 +1,5 @@
 # NKscript 
+![logo](images/logo.png)
 
 简化Nk插件的开发模式，使用脚本化编程，无需编译直接运行
 
@@ -107,4 +108,6 @@ depends{ //依赖，如果没有可以忽略
 使用原来的方法。
 默认的指令则是使用了SimpleCommand,使用可以参见example文件
 
-
+### 使用编写好的脚本
+直接将文件夹放到`plugins/NKScript`下即可
+![use](images/use.png)
