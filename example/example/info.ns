@@ -2,7 +2,8 @@ info{
       name "hello"
       version "1.0.0"
       author "MagicLu"
-      listeners ["listener.ns"]
+      listeners (["listener.ns"])
+      commandsMap (["command.ns"])
       id "net.noyark.www"
       description ""
       permissions ([

@@ -13,44 +13,9 @@ import cn.nukkit.utils.PluginException
 import net.noyark.www.nkscript.dsl.Utils
 import net.noyark.www.nkscript.nkstarter.NKScript
 
+import java.lang.reflect.Field
 import java.lang.reflect.Method
 
-// NkScript插件结构
-// - 根文件夹
-// -   info.ns
-// -   main.ns
-// -   listener.ns
-// -   commands.ns
-// -   others
-// info.ns
-//info{
-//    name "hello"
-//    listeners ["listener.ns"]
-//    commands ["commands.ns"]
-//    version "1.0.0"
-//    author "MagicLu"
-//    id "net.noyark.www"
-//    description ""
-//    permissions ([
-//            FirstPlugin.fp : [
-//                    description : "",
-//                    default : "op"
-//            ]
-//    ])
-//    commands ([
-//            fp : [
-//                    "usage" : "/fp help",
-//                    "description" : "指令介绍",
-//                    "permission" : "FirstPlugin.fp"
-//            ]
-//    ])
-//}
-// main.ns
-// import xxx
-// def onLoad(){
-// }
-// def onEnable(){
-// }
 class NKScriptParser {
 
     Map<String,PluginBase> plugins = [:]
@@ -68,6 +33,15 @@ class NKScriptParser {
     static final String ENCODING = System.getProperty("file.encoding")
 
     static final String FILE = ".ns"
+
+    public static final StringBuilder DEFAULT_IMPORT = new StringBuilder()
+            .append("import ${NKScriptPluginBase.name}\n")
+            .append("import ${Listener.name}\n")
+            .append("import ${CommandSender.name}\n")
+            .append("import ${Command.name}\n")
+            .append("import ${Arguments.name}\n")
+            .append("import ${CommandInfo.name}\n")
+            .append("import ${MainPlugin.name}\n")
 
     private List<File> loadedFile = []
 
@@ -142,7 +116,7 @@ class NKScriptParser {
                 ])
 
                 //TODO script depend
-                starter.server.getLogger().info(starter.server.getLanguage().translateString("nukkit.plugin.load", description.getFullName()));
+                starter.server.getLogger().info(starter.server.getLanguage().translateString("nukkit.plugin.load", description.getFullName()))
                 ResultEntry entry = new ResultEntry()
                 entry.info = scriptInfo
                 entry.code = code
@@ -168,9 +142,10 @@ class NKScriptParser {
                 ResultEntry entry = fileEntryMapping[f]
                 compileCode(entry.code,entry.info,entry.file,starter,entry.description,list)
             }
-            //println compileMain(code,scriptInfo.name,scriptInfo.id,file)
-            def mainClass = loader.parseClass(compileMain(code,scriptInfo.name,scriptInfo.id,file),scriptInfo.name)
+            //println(compileMain(code,scriptInfo.name,scriptInfo.id,file,"${scriptInfo.id}.${scriptInfo.name}"))
+            def mainClass = loader.parseClass(compileMain(code,scriptInfo.name,scriptInfo.id,file,"${scriptInfo.id}.${scriptInfo.name}"),scriptInfo.name)
             NKScriptPluginBase pluginBase = (NKScriptPluginBase)mainClass.newInstance()
+            autoMainPluginObject(pluginBase,pluginBase.class,pluginBase)
             pluginBase.scriptFile = file
             pluginBase.info = scriptInfo
             pluginBase.init(starter.pluginLoader,starter.server,description,starter.dataFolder,pluginBase.scriptFile)
@@ -189,14 +164,21 @@ class NKScriptParser {
                 loadScriptFile(pluginBaseMap[depend],starter)
             }
             PluginManager manager = starter.server.pluginManager
+
             manager.plugins.put(pluginBase.info.name,pluginBase)
+
             this.plugins.put(pluginBase.info.name,pluginBase)
 
             Method method = manager.class.getDeclaredMethod(PARSE_YAML_CMD,Plugin.class)
+
             method.accessible = true
+
             List<PluginCommand> li = (List)method.invoke(manager,pluginBase)
+
             starter.server.commandMap.registerAll(pluginBase.getDescription().getName(), li)
+
             pluginBase.onLoad()
+
 
             //...
             //前置加载-三种
@@ -219,18 +201,30 @@ class NKScriptParser {
             for(String listener in listeners){
                 def fileName = "${pluginBase.scriptFile}/"+listener
                 loadedFile.add(new File(fileName))
-                Listener list = (Listener)(loader.parseClass(compileListener(Utils.byInputStream(new FileInputStream(fileName),ENCODING),listener.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile)).newInstance())
+                Listener list = (Listener)(loader.parseClass(compileListener(Utils.byInputStream(new FileInputStream(fileName),ENCODING),listener.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile,pluginBase.class.name)).newInstance())
+                autoMainPluginObject(list,list.class,pluginBase)
                 starter.server.pluginManager.registerEvents(list,pluginBase)
             }
             def commands = pluginBase.info.commands
             for(String command in commands){
                 def fileName = "${pluginBase.scriptFile}/"+command
                 loadedFile.add(new File(fileName))
-                Object obj = loader.parseClass(compileCommand(Utils.byInputStream(new FileInputStream(fileName),ENCODING),command.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile)).newInstance()
+                Object obj = loader.parseClass(compileCommand(Utils.byInputStream(new FileInputStream(fileName),ENCODING),command.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile,pluginBase.class.name)).newInstance()
+                autoMainPluginObject(obj,obj.class,pluginBase)
                 starter.server.commandMap.registerSimpleCommands(obj)
             }
         }
 
+    }
+
+    private static autoMainPluginObject(Object obj,Class clz,NKScriptPluginBase pluginBase){
+        Field[] fields = clz.declaredFields
+        for(Field field in fields){
+            if(field.getAnnotation(MainPlugin.class)!=null){
+                field.accessible = true
+                field.set(obj,pluginBase)
+            }
+        }
     }
 
     private static void loadDepend(List depends,List loadBefore,List softDepend,PluginManager manager,Map<String,Plugin> loadedPlugins,Map<String,File> plugins,NKScript starter,PluginBase pluginBase){
@@ -295,33 +289,42 @@ class NKScriptParser {
         }
     }
 
-    private String compileCommand(String code,String name,String pack,File scriptFile){
-        return compileCode(name,code,"",pack,"",scriptFile)
+    private String compileCommand(String code,String name,String pack,File scriptFile,String base){
+        return compileCode(name,code,"",pack,"",scriptFile,base,false)
     }
 
-    private String compileMain(String code,String name,String pack,File scriptFile){
-        return compileCode(name,code,NKScriptPluginBase.simpleName,pack,EXTENDS,scriptFile)
+    private String compileMain(String code,String name,String pack,File scriptFile,String base){
+        return compileCode(name,code,NKScriptPluginBase.simpleName,pack,EXTENDS,scriptFile,base,true)
     }
 
-    private String compileListener(String code,String name,String pack,File scriptFile){
-        return compileCode(name,code, Listener.name,pack,IMPLEMENTS,scriptFile)
+    private String compileListener(String code,String name,String pack,File scriptFile,String base){
+        return compileCode(name,code, Listener.name,pack,IMPLEMENTS,scriptFile,base,false)
     }
 
-    private String compileCode(String name,String code,String parent,String pack,String method,File scriptFile){
-        Map map = splitCode(code,scriptFile,pack)
+    private String compileCode(String name,String code,String parent,String pack,String method,File scriptFile,String base,boolean main){
+        Map map = splitCode(code,scriptFile,pack,base)
         String realImport = map.imports
         String realCode = map.codes
+
+        //${main?"@${MainPlugin.name}\nstatic ${name} instance":""}
+        //public static ${name} getInstance(){
+        //        return instance
+        //    }
+        String add = main?"@${MainPlugin.simpleName} \n static ${PluginBase.simpleName} instance \npublic static ${PluginBase.simpleName} getInstance(){instance}":""
         return """
 package ${pack}
 ${realImport}
 class ${name} ${method} ${parent} {
+    ${add}
+
     ${realCode}
+    
 }
         """
     }
 
-    private String compileCommon(String code,String pack,File scriptFile){
-        splitCode(code,scriptFile,pack)
+    private String compileCommon(String code,String pack,File scriptFile,String base){
+        splitCode(code,scriptFile,pack,base)
         return """
 package ${pack}
 
@@ -329,24 +332,24 @@ ${code}
 """
     }
 
-    private Map splitCode(String code,File scriptFile,String pack){
+    private Map splitCode(String code,File scriptFile,String pack,String base){
         StringBuilder importsBuilder = new StringBuilder()
         StringBuilder realCode = new StringBuilder()
         List<String> codes = Utils.splitGroovyCode(code,"\n")
         for(String c in codes){
             if(c.startsWith("import")){
-                String className = c.substring("import".size()).trim()
+                String className = c.substring("import".size()).replace(" ","").replace("\t","")
                 importsBuilder.append(c).append("\n")
                 if(!checkClass(className)){
                     //导入类
-                    if(className.startsWith(pack)){
+                    if(className.startsWith(pack)&&!(className == base)){
                         String name = className.substring(pack.size())
                         name = name.replace(".","/")
                         def file = "${scriptFile.toString()}${name}${FILE}"
                         def sFile = new File(file)
                         def realPack = getPackage(className)
                         if(!loadedFile.contains(sFile)){
-                            loader.parseClass(compileCommon(Utils.byInputStream(new FileInputStream(file),ENCODING),realPack,scriptFile))
+                            loader.parseClass(compileCommon(Utils.byInputStream(new FileInputStream(file),ENCODING),realPack,scriptFile,base))
                             loadedFile.add(sFile)
                         }
 
@@ -356,14 +359,11 @@ ${code}
                 realCode.append(c).append("\n")
             }
         }
-        importsBuilder.append("import ${NKScriptPluginBase.name}").append("\n")
-        importsBuilder.append("import ${Listener.name}").append("\n")
-        importsBuilder.append("import ${CommandSender.name}\n" +
-                "import ${Command.name}\n" +
-                "import ${Arguments.name}\n" +
-                "import ${CommandInfo.name}")
+        importsBuilder.append(DEFAULT_IMPORT)
         return [imports : importsBuilder, codes : realCode]
     }
+
+
 
     private static String getPackage(String className){
         StringBuilder builder = new StringBuilder()

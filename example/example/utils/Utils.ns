@@ -1,0 +1,14 @@
+import cn.nukkit.plugin.PluginBase
+
+class Utils{
+    @net.noyark.www.nkscript.core.MainPlugin
+    private static PluginBase base
+
+    static {
+        println("helloworld")
+    }
+
+    public void done(){
+        println("helloworld")
+    }
+}

@@ -107,6 +107,41 @@ depends{ //依赖，如果没有可以忽略
 使用原来的方法。
 默认的指令则是使用了SimpleCommand,使用可以参见example文件
 
+### 原生getInstance和注入赋值
+主文件默认带一个静态的getInstance方法，可以直接获得当前的对象
+如listener.ns,如果我的插件名称是HelloWorld,id是net.noyark.www
+```groovy
+import net.noyark.www.HelloWorld
+
+import cn.nukkit.event.EventHandler
+import cn.nukkit.event.player.PlayerJoinEvent
+
+@EventHandler
+void onPlayerJoin(PlayerJoinEvent e){
+    //getInstance()是HelloWorld的自带方法
+    PluginBase base = HelloWorld.getInstance()
+    
+}
+
+```
+自动化赋值
+您可以通过@MainPlugin直接获得主类对象，当然只能使用于主类，监听器类，命令类
+如listener.ns
+```groovy
+import net.noyark.www.HelloWorld
+
+import cn.nukkit.event.EventHandler
+import cn.nukkit.event.player.PlayerJoinEvent
+
+@MainPlugin
+PluginBase base
+
+@EventHandler
+void onPlayerJoin(PlayerJoinEvent e){
+    base.logger.info("hello,world") //这里可以直接调用
+    
+}
+```
 ### 使用编写好的脚本
 直接将文件夹放到`plugins/NKScript`下即可
 ![use](images/use.png)

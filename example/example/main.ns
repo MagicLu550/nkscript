@@ -1,0 +1,20 @@
+import cn.nukkit.command.Command
+import cn.nukkit.command.CommandSender
+import cn.nukkit.plugin.PluginBase
+import net.noyark.www.utils.Utils
+
+
+
+void onLoad(){
+    this.logger.info("hello,world")
+    this.logger.info("老卢的脚本")
+    Utils utils = new Utils()
+    utils.done()
+    println(getInstance()) //获得对象
+}
+
+
+boolean onCommand(CommandInfo info) {
+    println info.command
+    return true
+}
