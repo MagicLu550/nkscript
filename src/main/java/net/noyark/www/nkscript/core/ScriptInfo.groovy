@@ -26,6 +26,8 @@ class ScriptInfo {
 
     List softDepend
 
+    List scriptDepend
+
 
 
     String getName() {
@@ -122,5 +124,13 @@ class ScriptInfo {
 
     void setSoftDepend(List softDepend) {
         this.softDepend = softDepend
+    }
+
+    List getScriptDepend() {
+        return scriptDepend
+    }
+
+    void setScriptDepend(List scriptDepend) {
+        this.scriptDepend = scriptDepend
     }
 }

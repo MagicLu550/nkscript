@@ -98,6 +98,7 @@ depends{ //依赖，如果没有可以忽略
     softDepend ([])
     depend ([])
     loadBefore([])
+    scriptDepend([]) //前置脚本
 }
 
 ```

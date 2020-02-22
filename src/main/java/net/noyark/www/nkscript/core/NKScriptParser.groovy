@@ -68,7 +68,16 @@ class NKScriptParser {
     static final String ENCODING = System.getProperty("file.encoding")
 
     static final String FILE = ".ns"
-    private List<File> loadedFile = new ArrayList<>()
+
+    private List<File> loadedFile = []
+
+    private Map<String,File> nameFileMapping = [:]
+
+    private Map<File,ResultEntry> fileEntryMapping = [:]
+
+    private List<String> loadedPluginBase = []
+
+    private Map<String,NKScriptPluginBase> pluginBaseMap = new HashMap<>()
 
     private GroovyClassLoader loader
 
@@ -78,12 +87,19 @@ class NKScriptParser {
 
     List<NKScriptPluginBase> loadScripts(File dir,NKScript script){
         List list = []
+        List result = []
         File[] files = dir.listFiles()
         if(files != null){
             for(File file in files){
-                if(file.isDirectory())
-                    list.add(prepareScript(file,script))
+                if(file.isDirectory()){
+                    def res = prepareScript(file,script)
+                    result.add(res)
+                    fileEntryMapping.put(file,res)
+                }
             }
+        }
+        for(ResultEntry entry in result){
+            compileCode(entry.code,entry.info,entry.file,script,entry.description,list)
         }
         for(NKScriptPluginBase base in list){
             loadScriptFile(base,script)
@@ -91,7 +107,13 @@ class NKScriptParser {
         return list
     }
 
-    NKScriptPluginBase prepareScript(File file,NKScript starter){
+    //前置脚本
+    //1 提前编译加载
+    //2 提前执行loadScriptFile
+
+
+
+    ResultEntry prepareScript(File file,NKScript starter){
         def infoFile = "${file.toString()}/" + INFO_FILE
         def iFile = new File(infoFile)
         if(iFile.exists()){
@@ -103,7 +125,6 @@ class NKScriptParser {
             if(mFile.exists()){
                 loadedFile.add(mFile)
                 def code = Utils.byInputStream(new FileInputStream(new File(main)),ENCODING)
-                def mainClass = loader.parseClass(compileMain(code,scriptInfo.name,scriptInfo.id,file),scriptInfo.name)
                 // 形成PluginDescription
                 // permissions
                 PluginDescription description = new PluginDescription([
@@ -117,17 +138,19 @@ class NKScriptParser {
                         permissions : scriptInfo.permissions,
                         api : starter.getDescription().getCompatibleAPIs(),
                         version : scriptInfo.version,
-                        main : mainClass.name
+                        main : "${scriptInfo.id}.${scriptInfo.name}".toString()
                 ])
 
-
+                //TODO script depend
                 starter.server.getLogger().info(starter.server.getLanguage().translateString("nukkit.plugin.load", description.getFullName()));
+                ResultEntry entry = new ResultEntry()
+                entry.info = scriptInfo
+                entry.code = code
+                entry.file = file
+                entry.description = description
+                nameFileMapping.put(scriptInfo.name,file)
                 //插件加载
-                NKScriptPluginBase pluginBase = (NKScriptPluginBase)mainClass.newInstance()
-                pluginBase.scriptFile = file
-                pluginBase.info = scriptInfo
-                pluginBase.init(starter.pluginLoader,starter.server,description,starter.dataFolder,pluginBase.scriptFile)
-                return pluginBase
+                return entry
 
             }else{
                 starter.server.getLogger().critical(starter.server.language.translateString("nukkit.plugin.genericLoadError", scriptInfo.name))
@@ -137,49 +160,77 @@ class NKScriptParser {
 
     }
 
+    private void compileCode(String code,ScriptInfo scriptInfo,File file,NKScript starter,PluginDescription description,List list){
+        if(!loadedPluginBase.contains(scriptInfo.name)){
+            List depends = scriptInfo.depends
+            for(String depend in depends){
+                File f = nameFileMapping[depend] //获得File
+                ResultEntry entry = fileEntryMapping[f]
+                compileCode(entry.code,entry.info,entry.file,starter,entry.description,list)
+            }
+            //println compileMain(code,scriptInfo.name,scriptInfo.id,file)
+            def mainClass = loader.parseClass(compileMain(code,scriptInfo.name,scriptInfo.id,file),scriptInfo.name)
+            NKScriptPluginBase pluginBase = (NKScriptPluginBase)mainClass.newInstance()
+            pluginBase.scriptFile = file
+            pluginBase.info = scriptInfo
+            pluginBase.init(starter.pluginLoader,starter.server,description,starter.dataFolder,pluginBase.scriptFile)
+            loadedPluginBase.add(scriptInfo.name)
+            pluginBaseMap[scriptInfo.name] = pluginBase
+            list.add(pluginBase)
+        }
+
+    }
+
 
     void loadScriptFile(NKScriptPluginBase pluginBase,NKScript starter){
-        PluginManager manager = starter.server.pluginManager
-        manager.plugins.put(pluginBase.info.name,pluginBase)
-        this.plugins.put(pluginBase.info.name,pluginBase)
+        if(!pluginBase.enabled){
+            List scriptDepend = pluginBase.info.scriptDepend
+            for(String depend in scriptDepend){
+                loadScriptFile(pluginBaseMap[depend],starter)
+            }
+            PluginManager manager = starter.server.pluginManager
+            manager.plugins.put(pluginBase.info.name,pluginBase)
+            this.plugins.put(pluginBase.info.name,pluginBase)
 
-        Method method = manager.class.getDeclaredMethod(PARSE_YAML_CMD,Plugin.class)
-        method.accessible = true
-        List<PluginCommand> li = (List)method.invoke(manager,pluginBase)
-        starter.server.commandMap.registerAll(pluginBase.getDescription().getName(), li)
-        pluginBase.onLoad()
-        
-        //...
-        //前置加载-三种
-        // 1. 第三方库导入
-        // 2. 插件前置加载
-        // 3. 脚本插件加载
-        List depends = pluginBase.info.depends
-        List loadBefore = pluginBase.info.loadBefore
-        List softDepend = pluginBase.info.softDepend
+            Method method = manager.class.getDeclaredMethod(PARSE_YAML_CMD,Plugin.class)
+            method.accessible = true
+            List<PluginCommand> li = (List)method.invoke(manager,pluginBase)
+            starter.server.commandMap.registerAll(pluginBase.getDescription().getName(), li)
+            pluginBase.onLoad()
 
-        Map<String,Plugin> loadedPlugins = manager.plugins //已经加载的插件
-        Map plugins = getPluginFileByName(starter)
+            //...
+            //前置加载-三种
+            // 1. 第三方库导入
+            // 2. 插件前置加载
+            // 3. 脚本插件加载
+            List depends = pluginBase.info.depends
+            List loadBefore = pluginBase.info.loadBefore
+            List softDepend = pluginBase.info.softDepend
 
-        loadDepend(depends,loadBefore,softDepend,manager,loadedPlugins,plugins,starter,pluginBase)
+            Map<String,Plugin> loadedPlugins = manager.plugins //已经加载的插件
+            Map plugins = getPluginFileByName(starter)
 
-        //onEnable
-        manager.enablePlugin(pluginBase)
-        
-        List listeners = pluginBase.info.listeners
-        for(String listener in listeners){
-            def fileName = "${pluginBase.scriptFile}/"+listener
-            loadedFile.add(new File(fileName))
-            Listener list = (Listener)(loader.parseClass(compileListener(Utils.byInputStream(new FileInputStream(fileName),ENCODING),listener.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile)).newInstance())
-            starter.server.pluginManager.registerEvents(list,pluginBase)
+            loadDepend(depends,loadBefore,softDepend,manager,loadedPlugins,plugins,starter,pluginBase)
+
+            //onEnable
+            manager.enablePlugin(pluginBase)
+
+            List listeners = pluginBase.info.listeners
+            for(String listener in listeners){
+                def fileName = "${pluginBase.scriptFile}/"+listener
+                loadedFile.add(new File(fileName))
+                Listener list = (Listener)(loader.parseClass(compileListener(Utils.byInputStream(new FileInputStream(fileName),ENCODING),listener.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile)).newInstance())
+                starter.server.pluginManager.registerEvents(list,pluginBase)
+            }
+            def commands = pluginBase.info.commands
+            for(String command in commands){
+                def fileName = "${pluginBase.scriptFile}/"+command
+                loadedFile.add(new File(fileName))
+                Object obj = loader.parseClass(compileCommand(Utils.byInputStream(new FileInputStream(fileName),ENCODING),command.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile)).newInstance()
+                starter.server.commandMap.registerSimpleCommands(obj)
+            }
         }
-        def commands = pluginBase.info.commands
-        for(String command in commands){
-            def fileName = "${pluginBase.scriptFile}/"+command
-            loadedFile.add(new File(fileName))
-            Object obj = loader.parseClass(compileCommand(Utils.byInputStream(new FileInputStream(fileName),ENCODING),command.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile)).newInstance()
-            starter.server.commandMap.registerSimpleCommands(obj)
-        }
+
     }
 
     private static void loadDepend(List depends,List loadBefore,List softDepend,PluginManager manager,Map<String,Plugin> loadedPlugins,Map<String,File> plugins,NKScript starter,PluginBase pluginBase){
@@ -349,6 +400,7 @@ ${code}
         List depends = (List)parser.getValue("depends.depend",[])[0]
         List softDepend = (List)parser.getValue("depends.softDepend",[])[0]
         List loadBefore = (List)parser.getValue("depends.loadBefore",[])[0]
+        List scriptDepend = (List)parser.getValue("depends.scriptDepend",[])[0]
         Map permissions = (Map)parser.getValue("info.permissions",[:])[0]
         Map commandsMap = (Map)parser.getValue("info.commands",[:])[0]
         ScriptInfo info = new ScriptInfo()
@@ -364,6 +416,7 @@ ${code}
         info.commandsMap = commandsMap
         info.loadBefore = loadBefore
         info.softDepend = softDepend
+        info.scriptDepend = scriptDepend
         return info
     }
 }
