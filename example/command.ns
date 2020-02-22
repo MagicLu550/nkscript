@@ -1,7 +1,3 @@
-import cn.nukkit.command.CommandSender
-import cn.nukkit.command.simple.Command
-import cn.nukkit.command.simple.Arguments
-
 @Command(name = "hello",description = "233",usageMessage = "/hello")
 @Arguments(max = 10,min = 0)
 void onHelloCommand(Object object, CommandSender sender, String label, String[] args){

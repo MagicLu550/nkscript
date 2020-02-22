@@ -58,6 +58,17 @@ import net.noyark.Hello
 总之，对于文件导入，除了主类是id.pluginName,其他都是id.脚本文件名,
 只有listener和command，主类可以省略packageName和class,其他必须要
 有类名
+写其他类时，可以省略包名
+
+每个类(除了主类)，默认的包名为id.其所在的文件夹
+
+在根目录上，脚本文件不得出现和插件名称重名的现象
+
+另外，重写onCommand方法，参数为onCommand(CommandInfo info)
+info.getCommand() 获得指令对象
+info.getLabel() 获得指令label
+info.getArgs() 获得指令参数
+info.getSender() 获得指令发送者
 
 ### info.ns书写
 ```groovy
@@ -83,7 +94,7 @@ info{
           ]
       ]) //和nk插件的plugin.yml结构相同
 }
-depends{ //依赖
+depends{ //依赖，如果没有可以忽略
     softDepend ([])
     depend ([])
     loadBefore([])

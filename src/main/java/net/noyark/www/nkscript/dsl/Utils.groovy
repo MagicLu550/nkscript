@@ -1,6 +1,7 @@
 package net.noyark.www.nkscript.dsl
 
 import cn.nukkit.utils.Config
+import net.noyark.www.nkscript.core.NKScriptParser
 import org.apache.commons.io.IOUtils
 
 import java.util.jar.JarEntry
@@ -53,7 +54,7 @@ class Utils {
         while (entries.hasMoreElements()){
             JarEntry entry = entries.nextElement()
             if(entry.name.endsWith("plugin.yml")){
-                Config config = new Config(byInputStream(jar.getInputStream(entry),System.getProperty("file.encoding")),Config.YAML)
+                Config config = new Config(byInputStream(jar.getInputStream(entry), NKScriptParser.ENCODING),Config.YAML)
                 return config.getString("name")
             }
         }
