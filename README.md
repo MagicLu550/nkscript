@@ -21,7 +21,6 @@ info.ns类似于nukkit的plugin.yml,其内容和plugin.yml也基本类似。
 在调用脚本时，格式就是id.脚本文件名称
 例如id为`net.noyark`,则脚本hello.ns写作
 ```groovy
-package net.noyark
 
 class hello{
     ///...
