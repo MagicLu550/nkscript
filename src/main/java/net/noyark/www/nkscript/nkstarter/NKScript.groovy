@@ -39,15 +39,15 @@ class NKScript extends PluginBase {
             if(args.length == 1){
                 if(args[0] == "list"){
                     sender.sendMessage("NKScript列表")
-                    this.parser.plugins.values().forEach{
+                    this.parser.plugins.values().each{
                         Plugin x->
-                        sender.sendMessage("${x.name}----${((NKScriptPluginBase)x).info.id}")
+                            sender.sendMessage("${x.name}----${((NKScriptPluginBase)x).info.id}")
                     }
                 }
                 if(args[0] == "help"){
-                    commands.forEach{
+                    commands.each{
                         e->
-                        this.logger.info("${TextFormat.RED}${e.key}:${TextFormat.GREEN}${e.value}")
+                            this.logger.info("${TextFormat.RED}${e.key}:${TextFormat.GREEN}${e.value}")
                     }
                 }
             }

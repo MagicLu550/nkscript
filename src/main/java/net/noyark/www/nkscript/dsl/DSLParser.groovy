@@ -26,7 +26,7 @@ abstract class DSLParser {
             String name,args->
                 def nowName = new StringBuilder()
                 def allNames = []
-                new Throwable().stackTrace.toList().forEach{
+                new Throwable().stackTrace.toList().each{
                     x->
                         if(x.toString().startsWith(this.class.name)){
                             def strs = x.toString().split("\\.")

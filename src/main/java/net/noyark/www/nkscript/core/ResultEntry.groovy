@@ -12,33 +12,25 @@ class ResultEntry {
 
     private PluginDescription description
 
-    String getCode() {
-        return code
-    }
+    String getCode() { code }
 
     void setCode(String code) {
         this.code = code
     }
 
-    ScriptInfo getInfo() {
-        return info
-    }
+    ScriptInfo getInfo() { info }
 
     void setInfo(ScriptInfo info) {
         this.info = info
     }
 
-    File getFile() {
-        return file
-    }
+    File getFile() { file }
 
     void setFile(File file) {
         this.file = file
     }
 
-    PluginDescription getDescription() {
-        return description
-    }
+    PluginDescription getDescription() { description }
 
     void setDescription(PluginDescription description) {
         this.description = description

@@ -13,11 +13,12 @@ import cn.nukkit.utils.PluginException
 import net.noyark.www.nkscript.dsl.Utils
 import net.noyark.www.nkscript.nkstarter.NKScript
 
-import java.lang.reflect.Field
 import java.lang.reflect.Method
 
 /**
- * NKScriptParser
+ * NKScriptParser类，脚本解析主类
+ *
+ * @author MagicLu550
  */
 class NKScriptParser {
 
@@ -71,16 +72,13 @@ class NKScriptParser {
     List<NKScriptPluginBase> loadScripts(File dir,NKScript script){
         List<NKScriptPluginBase> list = []
         List<ResultEntry> result = []
-        File[] files = dir.listFiles()
-        if(files != null){
-            files.toList().each{
-                file->
-                    if(file.isDirectory()){
-                        def res = prepareScript(file,script)
-                        result.add(res)
-                        fileEntryMapping.put(file,res)
-                    }
-            }
+        dir.listFiles()?.toList()?.each{
+            file->
+                if(file.isDirectory()){
+                    def res = prepareScript(file,script)
+                    result.add(res)
+                    fileEntryMapping.put(file,res)
+                }
         }
         result.each{
             entry->
@@ -95,19 +93,13 @@ class NKScriptParser {
         return list
     }
 
-    //前置脚本
-    //1 提前编译加载
-    //2 提前执行loadScriptFile
     ResultEntry prepareScript(File file,NKScript starter){
         def depends = "${file.toString()}/" + LIB_DIR
         def dFile = new File(depends)
         if(dFile.exists()){
-            File[] files = dFile.listFiles()
-            if(files){
-                files.toList().each{
-                    f->
-                        loader.addURL(f.toURI().toURL())
-                }
+            dFile.listFiles()?.toList()?.each{
+                f->
+                    loader.addURL(f.toURI().toURL())
             }
         }
         def infoFile = "${file.toString()}/" + INFO_FILE
@@ -294,8 +286,6 @@ class NKScriptParser {
                                 loadedFile.add(sFile)
                             }
 
-                        }else{
-                            loadClass(className)
                         }
                     }
                 }else{
@@ -306,30 +296,15 @@ class NKScriptParser {
         return [imports : importsBuilder, codes : realCode]
     }
 
-    private void loadClass(String name){
-        for(URLClassLoader loader in urlClassLoaders){
-            try{
-                loader.loadClass(name)
-                break
-            }catch(ClassNotFoundException e){
-
-            }
-        }
-    }
-
-
     private static String getPackage(String className){
         StringBuilder builder = new StringBuilder()
         def arr = className.split("\\.")
         builder.append(arr[0])
-        for(int i = 1;i<arr.length-1;i++){
-            builder.append(".").append(arr[i])
+        1.upto(arr.length-2){
+            builder.append(".").append(arr[it])
         }
         builder.toString()
     }
-
-
-
 
     private static boolean checkClass(String className){
         try{
@@ -374,8 +349,7 @@ class NKScriptParser {
 
     //如果有人吐槽我为啥不用it取代那个i，我觉得it可读性不高，只有我在遍历数字时会用到
     private static autoMainPluginObject(Object obj,Class clz,NKScriptPluginBase pluginBase){
-        Field[] fields = clz.declaredFields
-        fields.toList().each {
+        clz.declaredFields.toList().each {
             i->
                 if(i.getAnnotation(MainPlugin.class)!=null){
                     i.accessible = true
@@ -433,7 +407,7 @@ class NKScriptParser {
     private Map<String,File> getPluginFileByName(NKScript script){
         Map<String,File> map = [:]
         File[] pluginFiles = script.dataFolder.parentFile.listFiles()
-        if(jarFiles == null){
+        if(!jarFiles){
             jarFiles = []
             getJarFile(pluginFiles,jarFiles)
         }

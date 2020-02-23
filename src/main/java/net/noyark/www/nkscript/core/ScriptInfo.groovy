@@ -30,105 +30,79 @@ class ScriptInfo {
 
 
 
-    String getName() {
-        return name
-    }
+    String getName() { name }
 
     void setName(String name) {
         this.name = name
     }
 
-    String getId() {
-        return id
-    }
+    String getId() { id }
 
     void setId(String id) {
         this.id = id
     }
 
-    List<String> getListeners() {
-        return listeners
-    }
+    List<String> getListeners() { listeners }
 
     void setListeners(List listeners) {
         this.listeners = listeners
     }
 
-    List<String> getCommands() {
-        return commands
-    }
+    List<String> getCommands() { commands }
 
     void setCommands(List commands) {
         this.commands = commands
     }
 
-    String getVersion() {
-        return version
-    }
+    String getVersion() { version }
 
     void setVersion(String version) {
         this.version = version
     }
 
-    String getAuthor() {
-        return author
-    }
+    String getAuthor() { author }
 
     void setAuthor(String author) {
         this.author = author
     }
 
-    List<String> getDepends() {
-        return depends
-    }
+    List<String> getDepends() { depends }
 
     void setDepends(List depends) {
         this.depends = depends
     }
 
-    String getDescription() {
-        return description
-    }
+    String getDescription() { description }
 
     void setDescription(String description) {
         this.description = description
     }
 
-    Map getPermissions() {
-        return permissions
-    }
+    Map getPermissions() { permissions }
 
     void setPermissions(Map permissions) {
         this.permissions = permissions
     }
 
-    Map getCommandsMap() {
-        return commandsMap
-    }
+    Map getCommandsMap() { commandsMap }
 
     void setCommandsMap(Map commandsMap) {
         this.commandsMap = commandsMap
     }
 
-    List getLoadBefore() {
-        return loadBefore
-    }
+    List getLoadBefore() { loadBefore }
 
     void setLoadBefore(List loadBefore) {
         this.loadBefore = loadBefore
     }
 
-    List getSoftDepend() {
-        return softDepend
-    }
+    List getSoftDepend() { softDepend }
 
     void setSoftDepend(List softDepend) {
         this.softDepend = softDepend
     }
 
-    List<String> getScriptDepend() {
-        return scriptDepend
-    }
+    List<String> getScriptDepend() { scriptDepend }
 
     void setScriptDepend(List scriptDepend) {
         this.scriptDepend = scriptDepend
