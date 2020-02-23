@@ -23,26 +23,27 @@ class Utils {
         def arr = []
         def builder = new StringBuilder()
         boolean start = false
-        for(int i = 0;i<code.length();i++){
-            if(code[i] == "\""||code[i] == "'") {
-                if (!start) {
-                    index++
-                    start = true
-                } else {
-                    index--
-                    start = false
+        (0..code.size()-1).each {
+            i->
+                if(code[i] == "\""||code[i] == "'") {
+                    if (!start) {
+                        index++
+                        start = true
+                    } else {
+                        index--
+                        start = false
+                    }
                 }
-            }
-            if(index == 0){
-                if(code[i] == chars){
-                    arr.add(builder)
-                    builder = new StringBuilder()
+                if(index == 0){
+                    if(code[i] == chars){
+                        arr.add(builder)
+                        builder = new StringBuilder()
+                    }else{
+                        builder.append(code[i])
+                    }
                 }else{
                     builder.append(code[i])
                 }
-            }else{
-                builder.append(code[i])
-            }
         }
         if(!builder.toString().isEmpty())arr.add(builder.toString())
         arr
