@@ -445,12 +445,5 @@ ${code}
             }
         }
     }
-
-    private URLClassLoader loadOtherDepends(String file){
-        URL[] url = new URL[1]
-        url[0] = new File(file).toURI().toURL()
-        def loader = new URLClassLoader(url,loader)
-        urlClassLoaders.add(loader)
-        loader
-    }
+    
 }
