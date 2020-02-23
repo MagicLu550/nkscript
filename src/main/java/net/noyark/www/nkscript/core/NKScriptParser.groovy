@@ -16,6 +16,9 @@ import net.noyark.www.nkscript.nkstarter.NKScript
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 
+/**
+ * NKScriptParser
+ */
 class NKScriptParser {
 
     Map<String,PluginBase> plugins = [:]
@@ -36,8 +39,6 @@ class NKScriptParser {
 
     static final String LIB_DIR = "libs"
 
-
-
     public static final StringBuilder DEFAULT_IMPORT = new StringBuilder()
             .append("import ${NKScriptPluginBase.name}\n")
             .append("import ${Listener.name}\n")
@@ -47,19 +48,19 @@ class NKScriptParser {
             .append("import ${CommandInfo.name}\n")
             .append("import ${MainPlugin.name}\n")
 
-    private List<File> loadedFile = []
+    List<File> loadedFile = []
 
-    private Map<String,File> nameFileMapping = [:]
+    Map<String,File> nameFileMapping = [:]
 
-    private Map<File,ResultEntry> fileEntryMapping = [:]
+    Map<File,ResultEntry> fileEntryMapping = [:]
 
-    private List<String> loadedPluginBase = []
+    List<String> loadedPluginBase = []
 
-    private Map<String,NKScriptPluginBase> pluginBaseMap = new HashMap<>()
+    Map<String,NKScriptPluginBase> pluginBaseMap = new HashMap<>()
 
-    private GroovyClassLoader loader
+    GroovyClassLoader loader
 
-    private List<URLClassLoader> urlClassLoaders = []
+    List<URLClassLoader> urlClassLoaders = []
 
     NKScriptParser(){
         this.loader = new GroovyClassLoader(this.class.classLoader)
@@ -70,29 +71,31 @@ class NKScriptParser {
         List result = []
         File[] files = dir.listFiles()
         if(files != null){
-            for(File file in files){
-                if(file.isDirectory()){
-                    def res = prepareScript(file,script)
-                    result.add(res)
-                    fileEntryMapping.put(file,res)
-                }
+            files.toList().forEach{
+                file->
+                    if(file.isDirectory()){
+                        def res = prepareScript(file,script)
+                        result.add(res)
+                        fileEntryMapping.put(file,res)
+                    }
             }
         }
-        for(ResultEntry entry in result){
-            compileCode(entry.code,entry.info,entry.file,script,entry.description,list)
+        result.forEach{
+            ResultEntry entry->
+                compileCode(entry.code,entry.info,entry.file,script,entry.description,list)
         }
-        for(NKScriptPluginBase base in list){
-            loadScriptFile(base,script)
+
+        result.forEach{
+            NKScriptPluginBase base ->
+                loadScriptFile(base,script)
         }
+
         return list
     }
 
     //前置脚本
     //1 提前编译加载
     //2 提前执行loadScriptFile
-
-
-
     ResultEntry prepareScript(File file,NKScript starter){
         def depends = "${file.toString()}/" + LIB_DIR
         def dFile = new File(depends)
@@ -151,12 +154,13 @@ class NKScriptParser {
 
     private void compileCode(String code,ScriptInfo scriptInfo,File file,NKScript starter,PluginDescription description,List list){
         if(!loadedPluginBase.contains(scriptInfo.name)){
-            List depends = scriptInfo.depends
-            for(String depend in depends){
+            scriptInfo.depends.forEach{
+                String depend ->
                 File f = nameFileMapping[depend] //获得File
                 ResultEntry entry = fileEntryMapping[f]
                 compileCode(entry.code,entry.info,entry.file,starter,entry.description,list)
             }
+
             def mainClass = loader.parseClass(compileMain(code,scriptInfo.name,scriptInfo.id,file,"${scriptInfo.id}.${scriptInfo.name}"),scriptInfo.name)
             NKScriptPluginBase pluginBase = (NKScriptPluginBase)mainClass.newInstance()
             autoMainPluginObject(pluginBase,pluginBase.class,pluginBase)
@@ -173,9 +177,9 @@ class NKScriptParser {
 
     void loadScriptFile(NKScriptPluginBase pluginBase,NKScript starter){
         if(!pluginBase.enabled){
-            List scriptDepend = pluginBase.info.scriptDepend
-            for(String depend in scriptDepend){
-                loadScriptFile(pluginBaseMap[depend],starter)
+            pluginBase.info.scriptDepend.forEach{
+                String depend ->
+                    loadScriptFile(pluginBaseMap[depend],starter)
             }
             PluginManager manager = starter.server.pluginManager
 
@@ -193,39 +197,33 @@ class NKScriptParser {
 
             pluginBase.onLoad()
 
-
-            //...
-            //前置加载-三种
-            // 1. 第三方库导入
-            // 2. 插件前置加载
-            // 3. 脚本插件加载
             List depends = pluginBase.info.depends
             List loadBefore = pluginBase.info.loadBefore
             List softDepend = pluginBase.info.softDepend
 
-            Map<String,Plugin> loadedPlugins = manager.plugins //已经加载的插件
+            Map<String,Plugin> loadedPlugins = manager.plugins
+
             Map plugins = getPluginFileByName(starter)
 
             loadDepend(depends,loadBefore,softDepend,manager,loadedPlugins,plugins,starter,pluginBase)
 
-            //onEnable
             manager.enablePlugin(pluginBase)
 
-            List listeners = pluginBase.info.listeners
-            for(String listener in listeners){
-                def fileName = "${pluginBase.scriptFile}/"+listener
-                loadedFile.add(new File(fileName))
-                Listener list = (Listener)(loader.parseClass(compileListener(Utils.byInputStream(new FileInputStream(fileName),ENCODING),listener.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile,pluginBase.class.name)).newInstance())
-                autoMainPluginObject(list,list.class,pluginBase)
-                starter.server.pluginManager.registerEvents(list,pluginBase)
+            pluginBase.info.listeners.forEach{
+                String listener->
+                    def fileName = "${pluginBase.scriptFile}/"+listener
+                    loadedFile.add(new File(fileName))
+                    Listener list = (Listener)(loader.parseClass(compileListener(Utils.byInputStream(new FileInputStream(fileName),ENCODING),listener.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile,pluginBase.class.name)).newInstance())
+                    autoMainPluginObject(list,list.class,pluginBase)
+                    starter.server.pluginManager.registerEvents(list,pluginBase)
             }
-            def commands = pluginBase.info.commands
-            for(String command in commands){
-                def fileName = "${pluginBase.scriptFile}/"+command
-                loadedFile.add(new File(fileName))
-                Object obj = loader.parseClass(compileCommand(Utils.byInputStream(new FileInputStream(fileName),ENCODING),command.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile,pluginBase.class.name)).newInstance()
-                autoMainPluginObject(obj,obj.class,pluginBase)
-                starter.server.commandMap.registerSimpleCommands(obj)
+            pluginBase.info.commands.forEach{
+                String command ->
+                    def fileName = "${pluginBase.scriptFile}/"+command
+                    loadedFile.add(new File(fileName))
+                    Object obj = loader.parseClass(compileCommand(Utils.byInputStream(new FileInputStream(fileName),ENCODING),command.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile,pluginBase.class.name)).newInstance()
+                    autoMainPluginObject(obj,obj.class,pluginBase)
+                    starter.server.commandMap.registerSimpleCommands(obj)
             }
         }
 
@@ -249,61 +247,56 @@ class NKScriptParser {
         Map map = splitCode(code,scriptFile,pack,base)
         String realImport = map.imports
         String realCode = map.codes
-
-        //${main?"@${MainPlugin.name}\nstatic ${name} instance":""}
-        //public static ${name} getInstance(){
-        //        return instance
-        //    }
         String add = main?"@${MainPlugin.simpleName} \n static ${PluginBase.simpleName} instance \npublic static ${PluginBase.simpleName} getInstance(){instance}":""
         return """
-package ${pack}
-${realImport}
-class ${name} ${method} ${parent} {
-    ${add}
+            package ${pack}
+            ${realImport}
+            class ${name} ${method} ${parent} {
+                 ${add}
 
-    ${realCode}
+                ${realCode}
     
-}
+            }
         """
     }
 
     private String compileCommon(String code,String pack,File scriptFile,String base){
         splitCode(code,scriptFile,pack,base)
         return """
-package ${pack}
+            package ${pack}
 
-${code}
-"""
+            ${code}
+        """
     }
 
     private Map splitCode(String code,File scriptFile,String pack,String base){
         StringBuilder importsBuilder = new StringBuilder()
         StringBuilder realCode = new StringBuilder()
-        List<String> codes = Utils.splitGroovyCode(code,"\n")
-        for(String c in codes){
-            if(c.startsWith("import")){
-                String className = c.substring("import".size()).replace(" ","").replace("\t","")
-                importsBuilder.append(c).append("\n")
-                if(!checkClass(className)){
-                    //导入类
-                    if(className.startsWith(pack)&&!(className == base)){
-                        String name = className.substring(pack.size())
-                        name = name.replace(".","/")
-                        def file = "${scriptFile.toString()}${name}${FILE}"
-                        def sFile = new File(file)
-                        def realPack = getPackage(className)
-                        if(!loadedFile.contains(sFile)){
-                            loader.parseClass(compileCommon(Utils.byInputStream(new FileInputStream(file),ENCODING),realPack,scriptFile,base))
-                            loadedFile.add(sFile)
-                        }
+        Utils.splitGroovyCode(code,"\n").forEach{
+            c ->
+                if(c.startsWith("import")){
+                    String className = c.substring("import".size()).replace(" ","").replace("\t","")
+                    importsBuilder.append(c).append("\n")
+                    if(!checkClass(className)){
+                        //导入类
+                        if(className.startsWith(pack)&&!(className == base)){
+                            String name = className.substring(pack.size())
+                            name = name.replace(".","/")
+                            def file = "${scriptFile.toString()}${name}${FILE}"
+                            def sFile = new File(file)
+                            def realPack = getPackage(className)
+                            if(!loadedFile.contains(sFile)){
+                                loader.parseClass(compileCommon(Utils.byInputStream(new FileInputStream(file),ENCODING),realPack,scriptFile,base))
+                                loadedFile.add(sFile)
+                            }
 
-                    }else{
-                        loadClass(className)
+                        }else{
+                            loadClass(className)
+                        }
                     }
+                }else{
+                    realCode.append(c).append("\n")
                 }
-            }else{
-                realCode.append(c).append("\n")
-            }
         }
         importsBuilder.append(DEFAULT_IMPORT)
         return [imports : importsBuilder, codes : realCode]
@@ -337,10 +330,9 @@ ${code}
     private static boolean checkClass(String className){
         try{
             Class.forName(className)
-            return true
+            true
         }catch(ClassNotFoundException e){
-
-            return false
+            false
         }
     }
 
@@ -393,8 +385,14 @@ ${code}
                 if(!loadedPlugins.containsKey(depend)){
                     Plugin plugin = manager.loadPlugin(plugins.get(depend)).onLoad()
                     loadDepend(
-                            plugin.description.depend,plugin.description.loadBefore,plugin.description.softDepend
-                            ,manager,loadedPlugins,plugins,starter,(PluginBase)plugin
+                            plugin.description.depend,
+                            plugin.description.loadBefore,
+                            plugin.description.softDepend,
+                            manager,
+                            loadedPlugins,
+                            plugins,
+                            starter,
+                            (PluginBase)plugin
                     )
                     manager.enablePlugin(plugin)
                 }else{
@@ -408,19 +406,22 @@ ${code}
                     }
                 }
         }
-        for(String depend in depends){
-            if(plugins[depend] == null){
-                starter.logger.error("${pluginBase.name} Could not load depend : ${depend}")
-                return
-            }else {
+        depends.forEach{
+            String depend->
+                if(!plugins[depend]){
+                    starter.logger.error("${pluginBase.name} Could not load depend : ${depend}")
+                    return
+                }else {
+                    load(depend)
+                }
+        }
+        depends.forEach{
+            String depend ->
                 load(depend)
-            }
         }
-        for(String depend : loadBefore){
-            load(depend)
-        }
-        for(String soft : softDepend){
-            loader.addURL(new File("${((NKScriptPluginBase)pluginBase).scriptFile}/"+soft).toURI().toURL())
+        softDepend.forEach{
+            soft ->
+                loader.addURL(new File("${((NKScriptPluginBase)pluginBase).scriptFile}/"+soft).toURI().toURL())
         }
     }
     private static Map<String,File> getPluginFileByName(NKScript script){
@@ -428,22 +429,23 @@ ${code}
         List<File> files = []
         File[] pluginFiles = script.dataFolder.parentFile.listFiles()
         getJarFile(pluginFiles,files)
-        for(File f in files){
-            map[Utils.getPluginYmlName(f)] = f
+        files.forEach{
+            f->
+                map[Utils.getPluginYmlName(f)] = f
         }
         return map
     }
 
     private static void getJarFile(File[] pluginFiles,List files){
-        if(pluginFiles!=null){
-            for(File f in pluginFiles){
-                if(f.isDirectory()){
-                    getJarFile(f.listFiles(),files)
-                }else if(f.name.endsWith(".jar")){
-                    files.add(f)
-                }
+        if(pluginFiles){
+            pluginFiles.toList().forEach{
+                f->
+                    if(f.isDirectory())
+                        getJarFile(f.listFiles(),files)
+                    else if(f.name.endsWith(".jar"))
+                        files.add(f)
             }
         }
     }
-    
+
 }

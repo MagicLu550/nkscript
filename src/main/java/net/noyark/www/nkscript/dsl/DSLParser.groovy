@@ -53,17 +53,6 @@ abstract class DSLParser {
         t==null?[defaultValue]:t
     }
 
-    Map getChilds(String prefix){
-        Map map = [:]
-        for(en in entry){
-            if(en.key.startsWith(prefix)){
-                map[en.key] = en.value
-            }
-        }
-        map
-    }
-
-
     void loadDSLMethod(){
         this.class.methods.toList().forEach{
             x->
@@ -78,5 +67,7 @@ abstract class DSLParser {
     }
 
 
-    abstract void byProperty(String name,args,String stack);
+    void byProperty(String name,args,String stack){
+
+    }
 }

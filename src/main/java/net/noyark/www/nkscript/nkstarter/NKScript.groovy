@@ -52,6 +52,6 @@ class NKScript extends PluginBase {
             }
             return true
         }
-        return false
+        false
     }
 }
