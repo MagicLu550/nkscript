@@ -4,11 +4,16 @@ import cn.nukkit.command.Command
 import cn.nukkit.command.CommandSender
 import cn.nukkit.plugin.Plugin
 import cn.nukkit.plugin.PluginBase
+import cn.nukkit.utils.TextFormat
 import net.noyark.www.nkscript.core.NKScriptParser
 import net.noyark.www.nkscript.core.NKScriptPluginBase
 
 class NKScript extends PluginBase {
 
+    private Map commands = [
+            "list" : "列出所有加载的script插件" ,
+            "help" : "help"
+    ]
     private NKScriptParser parser
 
     @Override
@@ -37,6 +42,11 @@ class NKScript extends PluginBase {
                     this.parser.plugins.values().forEach{
                         Plugin x->
                         sender.sendMessage("${x.name}----${((NKScriptPluginBase)x).info.id}")
+                    }
+                }
+                if(args[0] == "help"){
+                    for(e in commands){
+                        this.logger.info("${TextFormat.RED}${e.key}:${TextFormat.GREEN}${e.value}")
                     }
                 }
             }
