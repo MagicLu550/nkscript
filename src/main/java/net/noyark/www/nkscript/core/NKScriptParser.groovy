@@ -372,13 +372,15 @@ class NKScriptParser {
         return info
     }
 
+    //如果有人吐槽我为啥不用it取代那个i，我觉得it可读性不高，只有我在遍历数字时会用到
     private static autoMainPluginObject(Object obj,Class clz,NKScriptPluginBase pluginBase){
         Field[] fields = clz.declaredFields
-        for(Field field in fields){
-            if(field.getAnnotation(MainPlugin.class)!=null){
-                field.accessible = true
-                field.set(obj,pluginBase)
-            }
+        fields.toList().each {
+            i->
+                if(i.getAnnotation(MainPlugin.class)!=null){
+                    i.accessible = true
+                    i.set(obj,pluginBase)
+                }
         }
     }
 
@@ -443,14 +445,12 @@ class NKScriptParser {
     }
 
     private static void getJarFile(File[] pluginFiles,List files){
-        if(pluginFiles){
-            pluginFiles.toList().each{
-                f->
-                    if(f.isDirectory())
-                        getJarFile(f.listFiles(),files)
-                    else if(f.name.endsWith(".jar"))
-                        files.add(f)
-            }
+        pluginFiles?.toList()?.each{
+            f->
+                if(f.isDirectory())
+                    getJarFile(f.listFiles(),files)
+                else if(f.name.endsWith(".jar"))
+                    files.add(f)
         }
     }
 
