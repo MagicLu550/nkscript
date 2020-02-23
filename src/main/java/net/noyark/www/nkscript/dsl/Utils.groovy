@@ -10,7 +10,7 @@ import java.util.jar.JarFile
 class Utils {
 
     static String byInputStream(InputStream input,String charSet){
-        StringBuilder builder = new StringBuilder()
+        def builder = new StringBuilder()
         IOUtils.readLines(input,charSet).forEach{
             x->
                 builder.append(x).append("\n")
@@ -21,10 +21,10 @@ class Utils {
     static List<String> splitGroovyCode(String code,String chars){
         int index = 0
         def arr = []
-        StringBuilder builder = new StringBuilder()
+        def builder = new StringBuilder()
         boolean start = false
         for(int i = 0;i<code.length();i++){
-            if(code[i].equals("\"")||code[i].equals("'")) {
+            if(code[i] == "\""||code[i] == "'") {
                 if (!start) {
                     index++
                     start = true
@@ -35,7 +35,7 @@ class Utils {
             }
             if(index == 0){
                 if(code[i] == chars){
-                    arr.add(builder.toString())
+                    arr.add(builder)
                     builder = new StringBuilder()
                 }else{
                     builder.append(code[i])
@@ -58,6 +58,7 @@ class Utils {
                 return config.getString("name")
             }
         }
+        null
     }
 
 }

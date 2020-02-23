@@ -46,7 +46,7 @@ class ScriptInfo {
         this.id = id
     }
 
-    List getListeners() {
+    List<String> getListeners() {
         return listeners
     }
 
@@ -54,7 +54,7 @@ class ScriptInfo {
         this.listeners = listeners
     }
 
-    List getCommands() {
+    List<String> getCommands() {
         return commands
     }
 
@@ -78,7 +78,7 @@ class ScriptInfo {
         this.author = author
     }
 
-    List getDepends() {
+    List<String> getDepends() {
         return depends
     }
 
@@ -126,7 +126,7 @@ class ScriptInfo {
         this.softDepend = softDepend
     }
 
-    List getScriptDepend() {
+    List<String> getScriptDepend() {
         return scriptDepend
     }
 

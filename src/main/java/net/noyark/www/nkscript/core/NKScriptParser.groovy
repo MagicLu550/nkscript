@@ -62,16 +62,18 @@ class NKScriptParser {
 
     List<URLClassLoader> urlClassLoaders = []
 
+    List<File> jarFiles
+
     NKScriptParser(){
         this.loader = new GroovyClassLoader(this.class.classLoader)
     }
 
     List<NKScriptPluginBase> loadScripts(File dir,NKScript script){
-        List list = []
-        List result = []
+        List<NKScriptPluginBase> list = []
+        List<ResultEntry> result = []
         File[] files = dir.listFiles()
         if(files != null){
-            files.toList().forEach{
+            files.toList().each{
                 file->
                     if(file.isDirectory()){
                         def res = prepareScript(file,script)
@@ -80,13 +82,13 @@ class NKScriptParser {
                     }
             }
         }
-        result.forEach{
-            ResultEntry entry->
+        result.each{
+            entry->
                 compileCode(entry.code,entry.info,entry.file,script,entry.description,list)
         }
 
-        result.forEach{
-            NKScriptPluginBase base ->
+        list.each{
+            base ->
                 loadScriptFile(base,script)
         }
 
@@ -102,8 +104,9 @@ class NKScriptParser {
         if(dFile.exists()){
             File[] files = dFile.listFiles()
             if(files){
-                for(File f in files){
-                    loader.addURL(f.toURI().toURL())
+                files.toList().each{
+                    f->
+                        loader.addURL(f.toURI().toURL())
                 }
             }
         }
@@ -154,8 +157,8 @@ class NKScriptParser {
 
     private void compileCode(String code,ScriptInfo scriptInfo,File file,NKScript starter,PluginDescription description,List list){
         if(!loadedPluginBase.contains(scriptInfo.name)){
-            scriptInfo.depends.forEach{
-                String depend ->
+            scriptInfo.depends.each{
+                depend ->
                 File f = nameFileMapping[depend] //获得File
                 ResultEntry entry = fileEntryMapping[f]
                 compileCode(entry.code,entry.info,entry.file,starter,entry.description,list)
@@ -177,8 +180,8 @@ class NKScriptParser {
 
     void loadScriptFile(NKScriptPluginBase pluginBase,NKScript starter){
         if(!pluginBase.enabled){
-            pluginBase.info.scriptDepend.forEach{
-                String depend ->
+            pluginBase.info.scriptDepend.each{
+                depend ->
                     loadScriptFile(pluginBaseMap[depend],starter)
             }
             PluginManager manager = starter.server.pluginManager
@@ -209,16 +212,16 @@ class NKScriptParser {
 
             manager.enablePlugin(pluginBase)
 
-            pluginBase.info.listeners.forEach{
-                String listener->
+            pluginBase.info.listeners.each{
+                listener->
                     def fileName = "${pluginBase.scriptFile}/"+listener
                     loadedFile.add(new File(fileName))
                     Listener list = (Listener)(loader.parseClass(compileListener(Utils.byInputStream(new FileInputStream(fileName),ENCODING),listener.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile,pluginBase.class.name)).newInstance())
                     autoMainPluginObject(list,list.class,pluginBase)
                     starter.server.pluginManager.registerEvents(list,pluginBase)
             }
-            pluginBase.info.commands.forEach{
-                String command ->
+            pluginBase.info.commands.each{
+                command ->
                     def fileName = "${pluginBase.scriptFile}/"+command
                     loadedFile.add(new File(fileName))
                     Object obj = loader.parseClass(compileCommand(Utils.byInputStream(new FileInputStream(fileName),ENCODING),command.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile,pluginBase.class.name)).newInstance()
@@ -272,8 +275,9 @@ class NKScriptParser {
     private Map splitCode(String code,File scriptFile,String pack,String base){
         StringBuilder importsBuilder = new StringBuilder()
         StringBuilder realCode = new StringBuilder()
-        Utils.splitGroovyCode(code,"\n").forEach{
+        Utils.splitGroovyCode(code,"\n").each{
             c ->
+                c = c.toString()
                 if(c.startsWith("import")){
                     String className = c.substring("import".size()).replace(" ","").replace("\t","")
                     importsBuilder.append(c).append("\n")
@@ -378,7 +382,7 @@ class NKScriptParser {
         }
     }
 
-    private void loadDepend(List depends,List loadBefore,List softDepend,PluginManager manager,Map<String,Plugin> loadedPlugins,Map<String,File> plugins,NKScript starter,PluginBase pluginBase){
+    private void loadDepend(List<String> depends,List<String> loadBefore,List<String> softDepend,PluginManager manager,Map<String,Plugin> loadedPlugins,Map<String,File> plugins,NKScript starter,PluginBase pluginBase){
         //检查加载depend
         def load = {
             String depend ->
@@ -406,8 +410,8 @@ class NKScriptParser {
                     }
                 }
         }
-        depends.forEach{
-            String depend->
+        depends.each{
+            depend->
                 if(!plugins[depend]){
                     starter.logger.error("${pluginBase.name} Could not load depend : ${depend}")
                     return
@@ -415,21 +419,23 @@ class NKScriptParser {
                     load(depend)
                 }
         }
-        depends.forEach{
-            String depend ->
+        loadBefore.each{
+            depend ->
                 load(depend)
         }
-        softDepend.forEach{
+        softDepend.each{
             soft ->
                 loader.addURL(new File("${((NKScriptPluginBase)pluginBase).scriptFile}/"+soft).toURI().toURL())
         }
     }
-    private static Map<String,File> getPluginFileByName(NKScript script){
+    private Map<String,File> getPluginFileByName(NKScript script){
         Map<String,File> map = [:]
-        List<File> files = []
         File[] pluginFiles = script.dataFolder.parentFile.listFiles()
-        getJarFile(pluginFiles,files)
-        files.forEach{
+        if(jarFiles == null){
+            jarFiles = []
+            getJarFile(pluginFiles,jarFiles)
+        }
+        jarFiles.each{
             f->
                 map[Utils.getPluginYmlName(f)] = f
         }
@@ -438,7 +444,7 @@ class NKScriptParser {
 
     private static void getJarFile(File[] pluginFiles,List files){
         if(pluginFiles){
-            pluginFiles.toList().forEach{
+            pluginFiles.toList().each{
                 f->
                     if(f.isDirectory())
                         getJarFile(f.listFiles(),files)

@@ -41,8 +41,7 @@ abstract class DSLParser {
                     nowName.append(allNames[i]).append(".")
                 }
                 nowName = nowName.substring(0,nowName.lastIndexOf("."))
-                entry[nowName+"."+name] = args
-                byProperty(name,args,nowName)
+                entry["${nowName}.${name}"] = args
         }
         this.loadDSLMethod()
         this.fileClass.getMethod("run").invoke(fileClass.newInstance())
@@ -64,10 +63,5 @@ abstract class DSLParser {
                     }
                 }
         }
-    }
-
-
-    void byProperty(String name,args,String stack){
-
     }
 }

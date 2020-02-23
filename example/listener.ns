@@ -1,7 +1,8 @@
 import cn.nukkit.event.EventHandler
+import cn.nukkit.event.block.BlockUpdateEvent
 import cn.nukkit.event.player.PlayerJoinEvent
 
 @EventHandler
-public void onPlayerJoin(PlayerJoinEvent e){
+public void onPlayerJoin(BlockUpdateEvent e){
 
 }

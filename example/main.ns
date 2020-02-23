@@ -16,6 +16,7 @@ void onLoad(){
 
 
 boolean onCommand(CommandInfo info) {
+
     println info.command
     return true
 }

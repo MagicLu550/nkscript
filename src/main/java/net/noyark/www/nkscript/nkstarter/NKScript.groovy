@@ -45,7 +45,8 @@ class NKScript extends PluginBase {
                     }
                 }
                 if(args[0] == "help"){
-                    for(e in commands){
+                    commands.forEach{
+                        e->
                         this.logger.info("${TextFormat.RED}${e.key}:${TextFormat.GREEN}${e.value}")
                     }
                 }

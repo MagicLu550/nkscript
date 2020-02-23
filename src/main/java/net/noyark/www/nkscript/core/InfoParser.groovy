@@ -12,11 +12,6 @@ class InfoParser extends DSLParser {
         super(file,"utf-8")
     }
 
-    @Override
-    void byProperty(String name, Object args, String stack) {
-
-    }
-
     @DSLMethod
     void info(Closure closure){
         closure()
