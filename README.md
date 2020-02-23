@@ -142,6 +142,10 @@ void onPlayerJoin(PlayerJoinEvent e){
     
 }
 ```
+
+### 第三方库导入
+只需要在你的脚本文件夹根目录/libs下添加jar包，即可被读取加载
+![libs](images/libs.png)
 ### 使用编写好的脚本
 直接将文件夹放到`plugins/NKScript`下即可
 ![use](images/use.png)

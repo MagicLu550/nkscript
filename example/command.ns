@@ -1,6 +1,7 @@
 import cn.nukkit.plugin.PluginBase
 import net.noyark.www.hello
 
+
 @MainPlugin
 PluginBase base
 

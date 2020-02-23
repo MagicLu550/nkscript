@@ -34,6 +34,10 @@ class NKScriptParser {
 
     static final String FILE = ".ns"
 
+    static final String LIB_DIR = "libs"
+
+
+
     public static final StringBuilder DEFAULT_IMPORT = new StringBuilder()
             .append("import ${NKScriptPluginBase.name}\n")
             .append("import ${Listener.name}\n")
@@ -54,6 +58,8 @@ class NKScriptParser {
     private Map<String,NKScriptPluginBase> pluginBaseMap = new HashMap<>()
 
     private GroovyClassLoader loader
+
+    private List<URLClassLoader> urlClassLoaders = []
 
     NKScriptParser(){
         this.loader = new GroovyClassLoader(this.class.classLoader)
@@ -88,6 +94,16 @@ class NKScriptParser {
 
 
     ResultEntry prepareScript(File file,NKScript starter){
+        def depends = "${file.toString()}/" + LIB_DIR
+        def dFile = new File(depends)
+        if(dFile.exists()){
+            File[] files = dFile.listFiles()
+            if(files){
+                for(File f in files){
+                    loader.addURL(f.toURI().toURL())
+                }
+            }
+        }
         def infoFile = "${file.toString()}/" + INFO_FILE
         def iFile = new File(infoFile)
         if(iFile.exists()){
@@ -115,7 +131,6 @@ class NKScriptParser {
                         main : "${scriptInfo.id}.${scriptInfo.name}".toString()
                 ])
 
-                //TODO script depend
                 starter.server.getLogger().info(starter.server.getLanguage().translateString("nukkit.plugin.load", description.getFullName()))
                 ResultEntry entry = new ResultEntry()
                 entry.info = scriptInfo
@@ -142,7 +157,6 @@ class NKScriptParser {
                 ResultEntry entry = fileEntryMapping[f]
                 compileCode(entry.code,entry.info,entry.file,starter,entry.description,list)
             }
-            //println(compileMain(code,scriptInfo.name,scriptInfo.id,file,"${scriptInfo.id}.${scriptInfo.name}"))
             def mainClass = loader.parseClass(compileMain(code,scriptInfo.name,scriptInfo.id,file,"${scriptInfo.id}.${scriptInfo.name}"),scriptInfo.name)
             NKScriptPluginBase pluginBase = (NKScriptPluginBase)mainClass.newInstance()
             autoMainPluginObject(pluginBase,pluginBase.class,pluginBase)
@@ -217,77 +231,7 @@ class NKScriptParser {
 
     }
 
-    private static autoMainPluginObject(Object obj,Class clz,NKScriptPluginBase pluginBase){
-        Field[] fields = clz.declaredFields
-        for(Field field in fields){
-            if(field.getAnnotation(MainPlugin.class)!=null){
-                field.accessible = true
-                field.set(obj,pluginBase)
-            }
-        }
-    }
 
-    private static void loadDepend(List depends,List loadBefore,List softDepend,PluginManager manager,Map<String,Plugin> loadedPlugins,Map<String,File> plugins,NKScript starter,PluginBase pluginBase){
-        //检查加载depend
-        def load = {
-            String depend ->
-            if(!loadedPlugins.containsKey(depend)){
-                Plugin plugin = manager.loadPlugin(plugins.get(depend)).onLoad()
-                loadDepend(
-                        plugin.description.depend,plugin.description.loadBefore,plugin.description.softDepend
-                        ,manager,loadedPlugins,plugins,starter,(PluginBase)plugin
-                )
-                manager.enablePlugin(plugin)
-            }else{
-                Plugin plugin = loadedPlugins[depend]
-                if(!plugin.enabled){
-                    loadDepend(
-                            plugin.description.depend,plugin.description.loadBefore,plugin.description.softDepend
-                            ,manager,loadedPlugins,plugins,starter,(PluginBase)plugin
-                    )
-                    manager.enablePlugin(plugin)
-                }
-            }
-        }
-        for(String depend in depends){
-            if(plugins[depend] == null){
-                starter.logger.error("${pluginBase.name} Could not load depend : ${depend}")
-                return
-            }else {
-                load(depend)
-            }
-        }
-        for(String depend : loadBefore){
-            load(depend)
-        }
-        for(String soft : softDepend){
-            URL[] url = new URL[1]
-            url[0] = new File(soft).toURI().toURL()
-            new URLClassLoader(url,this.classLoader)
-        }
-    }
-    private static Map<String,File> getPluginFileByName(NKScript script){
-        Map<String,File> map = [:]
-        List<File> files = []
-        File[] pluginFiles = script.dataFolder.parentFile.listFiles()
-        getJarFile(pluginFiles,files)
-        for(File f in files){
-             map[Utils.getPluginYmlName(f)] = f
-        }
-        return map
-    }
-
-    private static void getJarFile(File[] pluginFiles,List files){
-        if(pluginFiles!=null){
-            for(File f in pluginFiles){
-                if(f.isDirectory()){
-                    getJarFile(f.listFiles(),files)
-                }else if(f.name.endsWith(".jar")){
-                    files.add(f)
-                }
-            }
-        }
-    }
 
     private String compileCommand(String code,String name,String pack,File scriptFile,String base){
         return compileCode(name,code,"",pack,"",scriptFile,base,false)
@@ -353,6 +297,8 @@ ${code}
                             loadedFile.add(sFile)
                         }
 
+                    }else{
+                        loadClass(className)
                     }
                 }
             }else{
@@ -363,6 +309,16 @@ ${code}
         return [imports : importsBuilder, codes : realCode]
     }
 
+    private void loadClass(String name){
+        for(URLClassLoader loader in urlClassLoaders){
+            try{
+                loader.loadClass(name)
+                break
+            }catch(ClassNotFoundException e){
+
+            }
+        }
+    }
 
 
     private static String getPackage(String className){
@@ -418,5 +374,83 @@ ${code}
         info.softDepend = softDepend
         info.scriptDepend = scriptDepend
         return info
+    }
+
+    private static autoMainPluginObject(Object obj,Class clz,NKScriptPluginBase pluginBase){
+        Field[] fields = clz.declaredFields
+        for(Field field in fields){
+            if(field.getAnnotation(MainPlugin.class)!=null){
+                field.accessible = true
+                field.set(obj,pluginBase)
+            }
+        }
+    }
+
+    private void loadDepend(List depends,List loadBefore,List softDepend,PluginManager manager,Map<String,Plugin> loadedPlugins,Map<String,File> plugins,NKScript starter,PluginBase pluginBase){
+        //检查加载depend
+        def load = {
+            String depend ->
+                if(!loadedPlugins.containsKey(depend)){
+                    Plugin plugin = manager.loadPlugin(plugins.get(depend)).onLoad()
+                    loadDepend(
+                            plugin.description.depend,plugin.description.loadBefore,plugin.description.softDepend
+                            ,manager,loadedPlugins,plugins,starter,(PluginBase)plugin
+                    )
+                    manager.enablePlugin(plugin)
+                }else{
+                    Plugin plugin = loadedPlugins[depend]
+                    if(!plugin.enabled){
+                        loadDepend(
+                                plugin.description.depend,plugin.description.loadBefore,plugin.description.softDepend
+                                ,manager,loadedPlugins,plugins,starter,(PluginBase)plugin
+                        )
+                        manager.enablePlugin(plugin)
+                    }
+                }
+        }
+        for(String depend in depends){
+            if(plugins[depend] == null){
+                starter.logger.error("${pluginBase.name} Could not load depend : ${depend}")
+                return
+            }else {
+                load(depend)
+            }
+        }
+        for(String depend : loadBefore){
+            load(depend)
+        }
+        for(String soft : softDepend){
+            loader.addURL(new File("${((NKScriptPluginBase)pluginBase).scriptFile}/"+soft).toURI().toURL())
+        }
+    }
+    private static Map<String,File> getPluginFileByName(NKScript script){
+        Map<String,File> map = [:]
+        List<File> files = []
+        File[] pluginFiles = script.dataFolder.parentFile.listFiles()
+        getJarFile(pluginFiles,files)
+        for(File f in files){
+            map[Utils.getPluginYmlName(f)] = f
+        }
+        return map
+    }
+
+    private static void getJarFile(File[] pluginFiles,List files){
+        if(pluginFiles!=null){
+            for(File f in pluginFiles){
+                if(f.isDirectory()){
+                    getJarFile(f.listFiles(),files)
+                }else if(f.name.endsWith(".jar")){
+                    files.add(f)
+                }
+            }
+        }
+    }
+
+    private URLClassLoader loadOtherDepends(String file){
+        URL[] url = new URL[1]
+        url[0] = new File(file).toURI().toURL()
+        def loader = new URLClassLoader(url,loader)
+        urlClassLoaders.add(loader)
+        loader
     }
 }

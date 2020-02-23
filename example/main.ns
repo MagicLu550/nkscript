@@ -2,7 +2,7 @@ import cn.nukkit.command.Command
 import cn.nukkit.command.CommandSender
 import cn.nukkit.plugin.PluginBase
 import net.noyark.www.utils.Utils
-
+import net.noyark.util.jar.JarObject
 
 
 void onLoad(){
@@ -10,7 +10,8 @@ void onLoad(){
     this.logger.info("老卢的脚本")
     Utils utils = new Utils()
     utils.done()
-    println(getInstance()) //获得对象
+    println(getInstance())
+    println(new JarObject())
 }
 
 
