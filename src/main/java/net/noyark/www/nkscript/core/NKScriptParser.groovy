@@ -61,8 +61,6 @@ class NKScriptParser {
 
     GroovyClassLoader loader
 
-    List<URLClassLoader> urlClassLoaders = []
-
     List<File> jarFiles
 
     NKScriptParser(){
