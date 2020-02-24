@@ -1,8 +1,10 @@
 package net.noyark.www.nkscript.core
 
 import cn.nukkit.command.Command
-import cn.nukkit.command.CommandSender;
+import cn.nukkit.command.CommandSender
+import groovy.transform.CompileStatic
 
+@CompileStatic
 class CommandInfo {
 
     CommandSender sender
@@ -13,33 +15,25 @@ class CommandInfo {
 
     String[] args
 
-    CommandSender getSender() {
-        return sender
-    }
+    CommandSender getSender() { sender }
 
     void setSender(CommandSender sender) {
         this.sender = sender
     }
 
-    Command getCommand() {
-        return command
-    }
+    Command getCommand() { command }
 
     void setCommand(Command command) {
         this.command = command
     }
 
-    String getLabel() {
-        return label
-    }
+    String getLabel() { label }
 
     void setLabel(String label) {
         this.label = label
     }
 
-    String[] getArgs() {
-        return args
-    }
+    String[] getArgs() { args }
 
     void setArgs(String[] args) {
         this.args = args

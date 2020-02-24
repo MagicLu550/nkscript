@@ -1,12 +1,14 @@
 package net.noyark.www.nkscript.dsl
 
 import cn.nukkit.utils.Config
+import groovy.transform.CompileStatic
 import net.noyark.www.nkscript.core.NKScriptParser
 import org.apache.commons.io.IOUtils
 
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
 
+@CompileStatic
 class Utils {
 
     static String byInputStream(InputStream input,String charSet){
@@ -23,31 +25,32 @@ class Utils {
         def arr = []
         def builder = new StringBuilder()
         boolean start = false
-        0.upto(code.size()-1){
-            if(code[it] == "\""||code[it] == "'") {
-                if (!start) {
-                    index++
-                    start = true
-                } else {
-                    index--
-                    start = false
+        (0..code.size()-1).each{
+            it->
+                if(code[it] == "\""||code[it] == "'") {
+                    if (!start) {
+                        index++
+                        start = true
+                    } else {
+                        index--
+                        start = false
+                    }
                 }
-            }
-            if(index == 0){
-                if(code[it] == chars){
-                    arr.add(builder)
-                    builder = new StringBuilder()
+                if(index == 0){
+                    if(code[it] == chars){
+                        arr.add(builder)
+                        builder = new StringBuilder()
+                    }else{
+                        builder.append(code[it])
+                    }
                 }else{
                     builder.append(code[it])
                 }
-            }else{
-                builder.append(code[it])
-            }
         }
         if(!builder.toString().isEmpty())arr.add(builder.toString())
         arr
     }
-    
+
     static String getPluginYmlName(File file){
         JarFile jar = new JarFile(file)
         def entries = jar.entries()

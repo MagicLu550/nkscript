@@ -3,7 +3,9 @@ package net.noyark.www.nkscript.core
 import cn.nukkit.command.Command
 import cn.nukkit.command.CommandSender
 import cn.nukkit.plugin.PluginBase
+import groovy.transform.CompileStatic
 
+@CompileStatic
 abstract class NKScriptPluginBase extends PluginBase {
 
     private ScriptInfo info

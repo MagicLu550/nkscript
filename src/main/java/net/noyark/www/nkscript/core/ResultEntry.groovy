@@ -1,7 +1,9 @@
 package net.noyark.www.nkscript.core
 
-import cn.nukkit.plugin.PluginDescription;
+import cn.nukkit.plugin.PluginDescription
+import groovy.transform.CompileStatic;
 
+@CompileStatic
 class ResultEntry {
 
     private String code

@@ -1,5 +1,8 @@
 package net.noyark.www.nkscript.core
 
+import groovy.transform.CompileStatic
+
+@CompileStatic
 class ScriptInfo {
 
     String name

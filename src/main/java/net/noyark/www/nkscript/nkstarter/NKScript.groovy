@@ -5,9 +5,11 @@ import cn.nukkit.command.CommandSender
 import cn.nukkit.plugin.Plugin
 import cn.nukkit.plugin.PluginBase
 import cn.nukkit.utils.TextFormat
+import groovy.transform.CompileStatic
 import net.noyark.www.nkscript.core.NKScriptParser
 import net.noyark.www.nkscript.core.NKScriptPluginBase
 
+@CompileStatic
 class NKScript extends PluginBase {
 
     private Map commands = [

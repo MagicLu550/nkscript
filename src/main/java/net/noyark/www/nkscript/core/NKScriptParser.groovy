@@ -10,6 +10,8 @@ import cn.nukkit.plugin.PluginBase
 import cn.nukkit.plugin.PluginDescription
 import cn.nukkit.plugin.PluginManager
 import cn.nukkit.utils.PluginException
+import groovy.transform.CompileStatic
+import groovy.transform.TypeCheckingMode
 import net.noyark.www.nkscript.dsl.Utils
 import net.noyark.www.nkscript.nkstarter.NKScript
 
@@ -20,6 +22,7 @@ import java.lang.reflect.Method
  *
  * @author MagicLu550
  */
+@CompileStatic
 class NKScriptParser {
 
     Map<String,PluginBase> plugins = [:]
@@ -127,7 +130,7 @@ class NKScriptParser {
                         main : "${scriptInfo.id}.${scriptInfo.name}".toString()
                 ])
 
-                starter.server.getLogger().info(starter.server.getLanguage().translateString("nukkit.plugin.load", description.getFullName()))
+                starter.server.getLogger().info(starter.server.getLanguage().translateString("nukkit.plugin.load", [description.getFullName()]))
                 ResultEntry entry = new ResultEntry()
                 entry.info = scriptInfo
                 entry.code = code
@@ -138,7 +141,7 @@ class NKScriptParser {
                 return entry
 
             }else{
-                starter.server.getLogger().critical(starter.server.language.translateString("nukkit.plugin.genericLoadError", scriptInfo.name))
+                starter.server.getLogger().critical(starter.server.language.translateString("nukkit.plugin.genericLoadError", [scriptInfo.name]))
             }
         }
         throw new PluginException("No info.ns")
@@ -149,9 +152,9 @@ class NKScriptParser {
         if(!loadedPluginBase.contains(scriptInfo.name)){
             scriptInfo.depends.each{
                 depend ->
-                File f = nameFileMapping[depend] //获得File
-                ResultEntry entry = fileEntryMapping[f]
-                compileCode(entry.code,entry.info,entry.file,starter,entry.description,list)
+                    File f = (File)nameFileMapping[depend] //获得File
+                    ResultEntry entry = fileEntryMapping[f]
+                    compileCode(entry.code,entry.info,entry.file,starter,entry.description,list)
             }
 
             def mainClass = loader.parseClass(compileMain(code,scriptInfo.name,scriptInfo.id,file,"${scriptInfo.id}.${scriptInfo.name}"),scriptInfo.name)
@@ -168,6 +171,7 @@ class NKScriptParser {
     }
 
 
+    @CompileStatic(TypeCheckingMode.SKIP)
     void loadScriptFile(NKScriptPluginBase pluginBase,NKScript starter){
         if(!pluginBase.enabled){
             pluginBase.info.scriptDepend.each{
@@ -262,6 +266,8 @@ class NKScriptParser {
         """
     }
 
+
+    @CompileStatic(TypeCheckingMode.SKIP)
     private Map splitCode(String code,File scriptFile,String pack,String base){
         StringBuilder importsBuilder = new StringBuilder()
         StringBuilder realCode = new StringBuilder()
@@ -298,7 +304,7 @@ class NKScriptParser {
         StringBuilder builder = new StringBuilder()
         def arr = className.split("\\.")
         builder.append(arr[0])
-        1.upto(arr.length-2){
+        (1..arr.length-2).each{
             builder.append(".").append(arr[it])
         }
         builder.toString()
@@ -361,7 +367,8 @@ class NKScriptParser {
         def load = {
             String depend ->
                 if(!loadedPlugins.containsKey(depend)){
-                    Plugin plugin = manager.loadPlugin(plugins.get(depend)).onLoad()
+                    Plugin plugin = manager.loadPlugin(plugins.get(depend))
+                    plugin.onLoad()
                     loadDepend(
                             plugin.description.depend,
                             plugin.description.loadBefore,
