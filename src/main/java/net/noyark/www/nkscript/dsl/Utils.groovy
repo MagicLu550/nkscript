@@ -25,7 +25,7 @@ class Utils {
         def arr = []
         def builder = new StringBuilder()
         boolean start = false
-        (0..code.size()-1).each{
+        (0..<code.size()).each{
             it->
                 if(code[it] == "\""||code[it] == "'") {
                     if (!start) {
