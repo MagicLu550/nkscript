@@ -2,8 +2,6 @@ package net.noyark.www.nkscript.dsl
 
 import cn.nukkit.utils.Config
 import groovy.transform.CompileStatic
-import net.noyark.www.nkscript.core.NKScriptParser
-import org.apache.commons.io.IOUtils
 
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
@@ -11,15 +9,17 @@ import java.util.jar.JarFile
 @CompileStatic
 class Utils {
 
-    static String byInputStream(InputStream input,String charSet){
-        def builder = new StringBuilder()
-        IOUtils.readLines(input,charSet).forEach{
-            x->
-                builder.append(x).append("\n")
-        }
-        return builder
+    static String byInputStream(InputStream input){
+        return input.text
     }
 
+    static String byFileName(String file){
+        return byFile(new File(file))
+    }
+
+    static String byFile(File file){
+        return file.text
+    }
     static List<String> splitGroovyCode(String code,String chars){
         int index = 0
         def arr = []
@@ -57,11 +57,13 @@ class Utils {
         while (entries.hasMoreElements()){
             JarEntry entry = entries.nextElement()
             if(entry.name.endsWith("plugin.yml")){
-                Config config = new Config(byInputStream(jar.getInputStream(entry), NKScriptParser.ENCODING),Config.YAML)
+                Config config = new Config(byInputStream(jar.getInputStream(entry)),Config.YAML)
                 return config.getString("name")
             }
         }
         null
     }
+
+
 
 }

@@ -11,7 +11,7 @@ import net.noyark.www.nkscript.dsl.DSLParser
 class InfoParser extends DSLParser {
 
     InfoParser(File file) {
-        super(file,"utf-8")
+        super(file)
     }
 
     @DSLMethod

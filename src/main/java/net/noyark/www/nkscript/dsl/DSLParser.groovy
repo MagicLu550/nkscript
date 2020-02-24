@@ -15,13 +15,13 @@ abstract class DSLParser {
     Map<String,Object[]> entry = [:]
 
 
-    DSLParser(File file,String charSet){
-        this(new FileInputStream(file),charSet)
+    DSLParser(File file){
+        this(new FileInputStream(file))
     }
 
-    DSLParser(InputStream inputStream,String charSet){
+    DSLParser(InputStream inputStream){
         this.loader = new GroovyClassLoader(DSLParser.class.getClassLoader())
-        this.fileClass = loader.parseClass(Utils.byInputStream(inputStream,charSet))
+        this.fileClass = loader.parseClass(Utils.byInputStream(inputStream))
         this.fileClass.metaClass.methodMissing = {
             String name,args->
                 def nowName = new StringBuilder()

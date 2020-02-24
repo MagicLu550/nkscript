@@ -37,8 +37,6 @@ class NKScriptParser {
 
     static final String PARSE_YAML_CMD = "parseYamlCommands"
 
-    static final String ENCODING = System.getProperty("file.encoding")
-
     static final String FILE = ".ns"
 
     static final String LIB_DIR = "libs"
@@ -113,7 +111,7 @@ class NKScriptParser {
             def mFile = new File(main)
             if(mFile.exists()){
                 loadedFile.add(mFile)
-                def code = Utils.byInputStream(new FileInputStream(new File(main)),ENCODING)
+                def code = Utils.byFileName(main)
                 // 形成PluginDescription
                 // permissions
                 PluginDescription description = new PluginDescription([
@@ -210,7 +208,7 @@ class NKScriptParser {
                 listener->
                     def fileName = "${pluginBase.scriptFile}/"+listener
                     loadedFile.add(new File(fileName))
-                    Listener list = (Listener)(loader.parseClass(compileListener(Utils.byInputStream(new FileInputStream(fileName),ENCODING),listener.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile,pluginBase.class.name)).newInstance())
+                    Listener list = (Listener)(loader.parseClass(compileListener(Utils.byInputStream(new FileInputStream(fileName)),listener.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile,pluginBase.class.name)).newInstance())
                     autoMainPluginObject(list,list.class,pluginBase)
                     starter.server.pluginManager.registerEvents(list,pluginBase)
             }
@@ -218,7 +216,7 @@ class NKScriptParser {
                 command ->
                     def fileName = "${pluginBase.scriptFile}/"+command
                     loadedFile.add(new File(fileName))
-                    Object obj = loader.parseClass(compileCommand(Utils.byInputStream(new FileInputStream(fileName),ENCODING),command.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile,pluginBase.class.name)).newInstance()
+                    Object obj = loader.parseClass(compileCommand(Utils.byInputStream(new FileInputStream(fileName)),command.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile,pluginBase.class.name)).newInstance()
                     autoMainPluginObject(obj,obj.class,pluginBase)
                     starter.server.commandMap.registerSimpleCommands(obj)
             }
@@ -286,7 +284,7 @@ class NKScriptParser {
                             def sFile = new File(file)
                             def realPack = getPackage(className)
                             if(!loadedFile.contains(sFile)){
-                                loader.parseClass(compileCommon(Utils.byInputStream(new FileInputStream(file),ENCODING),realPack,scriptFile,base))
+                                loader.parseClass(compileCommon(Utils.byFileName(file),realPack,scriptFile,base))
                                 loadedFile.add(sFile)
                             }
 

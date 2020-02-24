@@ -1,4 +1,5 @@
 import cn.nukkit.plugin.PluginBase
+import groovy.transform.CompileStatic
 import net.noyark.www.hello
 
 
@@ -7,6 +8,7 @@ PluginBase base
 
 @Command(name = "hello",description = "233",usageMessage = "/hello")
 @Arguments(max = 10,min = 0)
+@CompileStatic
 boolean onHelloCommand(CommandSender sender, String label, String[] args){
     //这里写指令处理代码
     base.logger.info("hello,world")
