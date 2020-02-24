@@ -49,6 +49,7 @@ class NKScriptParser {
             .append("import ${Arguments.name}\n")
             .append("import ${CommandInfo.name}\n")
             .append("import ${MainPlugin.name}\n")
+            .append("import ${PluginBase.name}\n")
 
     List<File> loadedFile = []
 
@@ -154,7 +155,6 @@ class NKScriptParser {
                     ResultEntry entry = fileEntryMapping[f]
                     compileCode(entry.code,entry.info,entry.file,starter,entry.description,list)
             }
-
             def mainClass = loader.parseClass(compileMain(code,scriptInfo.name,scriptInfo.id,file,"${scriptInfo.id}.${scriptInfo.name}"),scriptInfo.name)
             NKScriptPluginBase pluginBase = (NKScriptPluginBase)mainClass.newInstance()
             autoMainPluginObject(pluginBase,pluginBase.class,pluginBase)
@@ -208,7 +208,10 @@ class NKScriptParser {
                 listener->
                     def fileName = "${pluginBase.scriptFile}/"+listener
                     loadedFile.add(new File(fileName))
-                    Listener list = (Listener)(loader.parseClass(compileListener(Utils.byInputStream(new FileInputStream(fileName)),listener.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile,pluginBase.class.name)).newInstance())
+                    // arg 2 name
+                    // arg 3 pack
+                    Map map = getPackageAndName(pluginBase,listener)
+                    Listener list = (Listener)(loader.parseClass(compileListener(Utils.byInputStream(new FileInputStream(fileName)),map.name,map.pack,pluginBase.scriptFile,pluginBase.class.name)).newInstance())
                     autoMainPluginObject(list,list.class,pluginBase)
                     starter.server.pluginManager.registerEvents(list,pluginBase)
             }
@@ -216,7 +219,8 @@ class NKScriptParser {
                 command ->
                     def fileName = "${pluginBase.scriptFile}/"+command
                     loadedFile.add(new File(fileName))
-                    Object obj = loader.parseClass(compileCommand(Utils.byInputStream(new FileInputStream(fileName)),command.split("\\.")[0],pluginBase.info.id,pluginBase.scriptFile,pluginBase.class.name)).newInstance()
+                    Map map = getPackageAndName(pluginBase,command)
+                    Object obj = loader.parseClass(compileCommand(Utils.byInputStream(new FileInputStream(fileName)),map.name,map.pack,pluginBase.scriptFile,pluginBase.class.name)).newInstance()
                     autoMainPluginObject(obj,obj.class,pluginBase)
                     starter.server.commandMap.registerSimpleCommands(obj)
             }
@@ -224,6 +228,12 @@ class NKScriptParser {
 
     }
 
+    private static Map getPackageAndName(NKScriptPluginBase pluginBase,String fileName){
+        String file = fileName.split("\\.")[0].replace(File.separator,".")
+        String pack = "${pluginBase.info.id}.${getPackage(file)}".toString()
+        String name = file.split("\\.").last()
+        return [pack : pack,name : name]
+    }
 
 
     private String compileCommand(String code,String name,String pack,File scriptFile,String base){

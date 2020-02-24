@@ -1,0 +1,22 @@
+info{
+      name "game"
+      version "1.0.0"
+      author "MagicLu"
+      listeners (["listener.ns"])
+      commandsMap (["command.ns"])
+      id "net.noyark.www"
+      description ""
+      permissions ([
+           "FirstPlugin.fp" : [
+                  description : "",
+                  default : "op"
+           ]
+      ])
+      commands ([
+          fp : [
+              "usage" : "/fp help",
+              "description" : "指令介绍",
+              "permission" : "FirstPlugin.fp"
+          ]
+      ])
+}
