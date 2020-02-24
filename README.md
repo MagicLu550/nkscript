@@ -146,6 +146,19 @@ void onPlayerJoin(PlayerJoinEvent e){
 ### 第三方库导入
 只需要在你的脚本文件夹根目录/libs下添加jar包，即可被读取加载
 ![libs](images/libs.png)
+
+### Groovy脚本效率很低怎么办？
+您可以抛弃动态类型，因为Groovy依然是强类型的，它可以使用@CompileStatic注解使得您的代码静态编译，但是需要您抛弃动态类型,类似于这样
+```groovy
+@Command(name = "hello",description = "233",usageMessage = "/hello")
+@Arguments(max = 10,min = 0)
+@CompileStatic
+boolean onHelloCommand(CommandSender sender, String label, String[] args){
+    //这里写指令处理代码
+    base.logger.info("hello,world")
+    return true
+}
+```
 ### 使用编写好的脚本
 直接将文件夹放到`plugins/NKScript`下即可
 ![use](images/use.png)
