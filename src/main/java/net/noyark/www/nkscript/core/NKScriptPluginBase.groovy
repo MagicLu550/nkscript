@@ -35,8 +35,10 @@ abstract class NKScriptPluginBase extends PluginBase {
         info.sender = sender
         info.label = label
         info.args = args
-        return onCommand(info)
+        return this.onCommand(info)
     }
 
-    abstract boolean onCommand(CommandInfo info)
+    boolean onCommand(CommandInfo info){
+        return false
+    }
 }

@@ -18,14 +18,33 @@ import net.noyark.www.nkscript.nkstarter.NKScript
 import java.lang.reflect.Method
 
 /**
- * NKScriptParser类，脚本解析主类
- *
+ * NKScriptParser类，脚本解析主类，主要职能是加载脚本。
+ * 每一个脚本的主文件是main.ns，配置文件是info.ns
+ * 解析info.ns采用了类似gradle的方式,同样使用了groovy语法
+ * {@code @CompileStatic}是静态编译的标志，
+ * 除非特定方法标记了{@code @CompileStatic(SKIP)}，将跳过
+ * 类型检查和静态编译
+ * NKScriptParser class, the main class for script parsing, whose main function is to load scripts.
+ * The main file of each script is main.ns and the configuration file is info.ns
+ * Parsing info.ns uses a gradle-like approach, and also uses groovy syntax
+ * {@code @CompileStatic} is a sign of static compilation,
+ * Skip unless specific method is marked with {@code @CompileStatic (SKIP)}
+ * Type checking and static compilation
  * @author MagicLu550
+ * @since JDK1.8 Nukkit API 1.0.9
+ * @organization Pioneer
  */
 @CompileStatic
 class NKScriptParser {
 
+    /**
+     * 该字段用于存储已经加载的脚本主类对象，key为info.ns文件中的name
+     * This field is used to store the script main class object that has been loaded.
+     * The key is the name in the info.ns file.
+     */
     Map<String,PluginBase> plugins = [:]
+
+
 
     static final String INFO_FILE = "info.ns"
 
@@ -155,7 +174,7 @@ class NKScriptParser {
                     ResultEntry entry = fileEntryMapping[f]
                     compileCode(entry.code,entry.info,entry.file,starter,entry.description,list)
             }
-            def mainClass = loader.parseClass(compileMain(code,scriptInfo.name,scriptInfo.id,file,"${scriptInfo.id}.${scriptInfo.name}"),scriptInfo.name)
+            def mainClass = loader.parseClass(compileMain(code,scriptInfo.name,scriptInfo.id,file,"${scriptInfo.id}.${scriptInfo.name}",scriptInfo.retainMainClass),scriptInfo.name)
             NKScriptPluginBase pluginBase = (NKScriptPluginBase)mainClass.newInstance()
             autoMainPluginObject(pluginBase,pluginBase.class,pluginBase)
             pluginBase.scriptFile = file
@@ -237,31 +256,34 @@ class NKScriptParser {
 
 
     private String compileCommand(String code,String name,String pack,File scriptFile,String base){
-        return compileCode(name,code,"",pack,"",scriptFile,base,false)
+        return compileCode(name,code,"",pack,"",scriptFile,base,false,false)
     }
 
-    private String compileMain(String code,String name,String pack,File scriptFile,String base){
-        return compileCode(name,code,NKScriptPluginBase.simpleName,pack,EXTENDS,scriptFile,base,true)
+    private String compileMain(String code,String name,String pack,File scriptFile,String base,boolean remain){
+        return compileCode(name,code,NKScriptPluginBase.simpleName,pack,EXTENDS,scriptFile,base,true,remain)
     }
 
     private String compileListener(String code,String name,String pack,File scriptFile,String base){
-        return compileCode(name,code, Listener.name,pack,IMPLEMENTS,scriptFile,base,false)
+        return compileCode(name,code, Listener.name,pack,IMPLEMENTS,scriptFile,base,false,false)
     }
 
-    private String compileCode(String name,String code,String parent,String pack,String method,File scriptFile,String base,boolean main){
+    private String compileCode(String name,String code,String parent,String pack,String method,File scriptFile,String base,boolean main,boolean remain){
         Map map = splitCode(code,scriptFile,pack,base)
         String realImport = map.imports
         String realCode = map.codes
         String add = main?"@${MainPlugin.simpleName} \n static ${PluginBase.simpleName} instance \npublic static ${PluginBase.simpleName} getInstance(){instance}":""
-        return """
-            package ${pack}
-            ${realImport}
+        String realAdd = remain?realCode:"""
             class ${name} ${method} ${parent} {
                  ${add}
 
                 ${realCode}
     
             }
+        """
+        return """
+            package ${pack}
+            ${realImport}
+            ${realAdd}
         """
     }
 
@@ -342,6 +364,7 @@ class NKScriptParser {
         List scriptDepend = (List)parser.getValue("depends.scriptDepend",[])[0]
         Map permissions = (Map)parser.getValue("info.permissions",[:])[0]
         Map commandsMap = (Map)parser.getValue("info.commands",[:])[0]
+        Boolean retain = (Boolean)parser.getValue("info.retain",false)[0]
         ScriptInfo info = new ScriptInfo()
         info.name = name
         info.commands = commands
@@ -356,6 +379,7 @@ class NKScriptParser {
         info.loadBefore = loadBefore
         info.softDepend = softDepend
         info.scriptDepend = scriptDepend
+        info.retainMainClass = retain
         return info
     }
 

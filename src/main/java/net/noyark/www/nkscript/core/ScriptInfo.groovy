@@ -31,6 +31,8 @@ class ScriptInfo {
 
     List scriptDepend
 
+    Boolean retainMainClass
+
 
 
     String getName() { name }

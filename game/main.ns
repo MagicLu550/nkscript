@@ -1,0 +1,16 @@
+import cn.nukkit.plugin.PluginBase
+
+class Game extends PluginBase{
+    void onLoad(){
+        this.logger.info("MagicLu's script example02,the simple pvp game")
+    }
+
+    void onEnable(){
+        this.logger.info("插件已经加载")
+    }
+
+    void onDisable(){
+
+    }
+}
+

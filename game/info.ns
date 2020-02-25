@@ -1,9 +1,9 @@
 info{
-      name "game"
+      name "Game"
       version "1.0.0"
       author "MagicLu"
-      listeners (["listener.ns"])
-      commandsMap (["command.ns"])
+      listeners (["PlayerListener.ns"])
+      retain true
       id "net.noyark.www"
       description ""
       permissions ([
