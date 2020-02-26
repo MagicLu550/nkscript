@@ -334,9 +334,12 @@ class NKScriptParser {
         StringBuilder builder = new StringBuilder()
         def arr = className.split("\\.")
         builder.append(arr[0])
-        (1..<arr.length-1).each{
-            builder.append(".").append(arr[it])
+        if(arr.length > 1){
+            (1..<arr.length-1).each{
+                builder.append(".").append(arr[it])
+            }
         }
+
         builder.toString()
     }
 
