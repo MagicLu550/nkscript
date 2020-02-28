@@ -159,6 +159,55 @@ boolean onHelloCommand(CommandSender sender, String label, String[] args){
     return true
 }
 ```
+
+### info.retain属性
+info.retain设置为true，可以对主类不进行套壳编译。
+
+info.ns
+```groovy
+info{
+      name "Game"
+      version "1.0.0"
+      author "MagicLu"
+      listeners (["PlayerListener.ns"])
+      retain true
+      id "net.noyark.www"
+      description ""
+      permissions ([
+           "FirstPlugin.fp" : [
+                  description : "",
+                  default : "op"
+           ]
+      ])
+      commands ([
+          fp : [
+              "usage" : "/fp help",
+              "description" : "指令介绍",
+              "permission" : "FirstPlugin.fp"
+          ]
+      ])
+}
+```
+
+main.ns只能写成
+```groovy
+
+class Game extends PluginBase{
+    void onLoad(){
+        this.logger.info("MagicLu's script example02,the simple pvp game")
+    }
+
+    void onEnable(){
+        this.logger.info("插件已经加载")
+    }
+
+    void onDisable(){
+
+    }
+}
+```
+
+设计这个的意义: 有些人可能为了使用ide的补全功能，可以开启它
 ### 使用编写好的脚本
 直接将文件夹放到`plugins/NKScript`下即可
 ![use](images/use.png)
